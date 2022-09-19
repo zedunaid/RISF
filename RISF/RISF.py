@@ -32,6 +32,16 @@ class RISF:
 
 
         self.lagoon_surface_area=[151254,-387.11]
+        self.animal_count = 30000
+        self.manure_generation_rate = {
+                     'Farrow-wean': 4.39,
+                     'Farrow-feeder': 5.30,
+                     'Farrow-finish': 14.38,
+                     'Wean-feeder': 0.30,
+                     'Wean-finish': 1.17,
+                     'Feeder-finish': 1.37
+                     }
+        self.depth_calculate_constants=[1.4235e+02,-1.5777e-05,2.6079e-13]
 
     def getDelta(self, average_air_tem_c):
 
@@ -100,7 +110,9 @@ class RISF:
 
 
 
+    def getDepth(self,volume):
 
+       return [ (self.depth_calculate_constants[0]+ self.depth_calculate_constants[1]*vol + self.depth_calculate_constants[2]*math.pow(vol,2)) for vol in volume]
 #Main function
     def readInputFile(self):
         print("Starting ...")
@@ -108,7 +120,7 @@ class RISF:
 
         try:
 
-            workbook.replace(regex='#VALUE!', value=0.0)
+
             workbook.fillna(0)
 
             average_air_tem_c = []
@@ -120,7 +132,7 @@ class RISF:
 
             net_radiation = self.getNetRadiation(workbook[self.cols['avg_solar_rad']])
             avg_wind_speed_at_two_meters = self.getWindSpeed(workbook[self.cols['avg_wind_speed_mps']])
-
+            rainfall_rate = workbook[self.cols['total_per']]
             for index, row in workbook.iterrows():
 
                 if row[self.cols['min_air_tem_c']] == '#VALUE!':
@@ -159,13 +171,36 @@ class RISF:
             print(evaporation)
 
 
-            #########Lagoon surface Area #########
+            ###Lagoon surface Area ###
             depth=0
             lagoon_surface_area= self.calculateLagoonSurfaceArea(depth)
             evaporation_volume=[ evaporation_rate*lagoon_surface_area for evaporation_rate in evaporation]
 
             print("\nPrinting evaporation volume")
             print(evaporation_volume)
+
+            ###rainfall volume###
+            rainfall_volume = [lagoon_surface_area*rate for rate in rainfall_rate]
+            print("\nPrinting rainfall volume")
+            print(rainfall_volume)
+
+
+            ## animal waste ##
+            animal_waste = self.animal_count*self.manure_generation_rate['Farrow-wean']
+            old_volume=[0.0]*len(evaporation_volume)
+
+            new_volume = [0.0]*len(evaporation_volume)
+            for i in range(len(evaporation_volume)):
+
+                 new_volume[i]= old_volume[i]+rainfall_volume[i]+animal_waste-evaporation_volume[i]
+
+
+            print("\nPrinting new Volume of laggon")
+            print(new_volume)
+
+            new_depth = self.getDepth(new_volume)
+            print("\nPrinting new depth")
+            print(new_depth)
 
 
         except:
