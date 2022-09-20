@@ -4,7 +4,9 @@ import math
 class RISF:
 
     def __init__(self):
-
+        """
+           The constructor initializes all the required constants that can be used for simulation
+        """
         self.cols = {'date': 'Date',
                      'avg_air_tem_f': 'Average Air Temperature (F)',
                      'avg_air_tem_c': 'Average Air Temperature (C)',
@@ -44,7 +46,12 @@ class RISF:
         self.depth_calculate_constants=[1.4235e+02,-1.5777e-05,2.6079e-13]
 
     def getDelta(self, average_air_tem_c):
-
+        """
+        Calculates delta for each average air temperature (C)
+        :param self:
+        :param average_air_tem_c:
+        :return list of deltas calculated for average air temperature (C)
+        """
         delta_average_air_tem_c = [(1000 * (
                 self.deltas[0] * self.deltas[1] * math.exp((self.deltas[2] * tem)) / (tem + self.deltas[3])) / (
                                         pow(tem + self.deltas[3], 2))) for tem in average_air_tem_c]
@@ -52,8 +59,17 @@ class RISF:
 
     # Todo: Get sensible function name
 
-    def ea(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per):
 
+    def ea(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per):
+        """
+
+        :param self:
+        :param min_air_tem_c:
+        :param max_air_tem_c:
+        :param max_rel_humidity_per:
+        :param min_rel_humidity_per:
+        :return:
+        """
         return 1000 * ((self.deltas[1] * math.exp(
             (self.deltas[2] * max_air_tem_c) / (max_air_tem_c + self.deltas[3])) * (min_rel_humidity_per / 100))
                        + ((self.deltas[1] * math.exp(
@@ -61,28 +77,66 @@ class RISF:
                                   max_rel_humidity_per / 100))) / 2
 
     def es(self, min_air_tem_c, max_air_tem_c):
+       """
 
-        return 1000 * ((self.deltas[1] * math.exp((self.deltas[2] * max_air_tem_c) / (max_air_tem_c + self.deltas[3])))
+       :param self:
+       :param min_air_tem_c:
+       :param max_air_tem_c:
+       :return:
+       """
+       return 1000 * ((self.deltas[1] * math.exp((self.deltas[2] * max_air_tem_c) / (max_air_tem_c + self.deltas[3])))
                        + (self.deltas[1] * math.exp(
                     (self.deltas[2] * min_air_tem_c) / (min_air_tem_c + self.deltas[3])))
                        ) / 2
 
     def getNetRadiation(self, avg_solar_rad):
+        """
+        Calculated net radiation from average solar radiation
+        :param self:
+        :param avg_solar_rad:
+        :return list of net radiation :
+        """
         return [radiation * self.radiation_a + self.radiation_b for radiation in avg_solar_rad]
 
-    def getWindSpeed(self, avg_wind_speed):
 
+
+    def getWindSpeed(self, avg_wind_speed):
+        """
+        Calculates wind velocity form average wind speed (mps)
+        :param self:
+        :param avg_wind_speed:
+        :return list of wind velocity:
+        """
         return [velocity * (self.windVelocity[0] / math.log(self.windVelocity[1] * self.z2 - self.windVelocity[2])) for velocity
                 in avg_wind_speed]
 
+
     def getAirDensity(self, average_air_tem_c):
+        """
+        Calculates air density from average air temperature (C)
+        :param self:
+        :param average_air_tem_c:
+        :return list of air density:
+        """
         p = 101325
         r = 287.5
         return [p / (r * (tem + 273)) for tem in average_air_tem_c]
 
-    def calculateEvaporation(self, delta_air_tem_c, e_as, e_a, air_density, net_radiation,
-                             avg_wind_speed_at_two_meters):
 
+
+    def calculateEvaporationRate(self, delta_air_tem_c, e_as, e_a, air_density, net_radiation,
+                                 avg_wind_speed_at_two_meters):
+        """
+        Calculates final evaporation from given parameters
+        :param self:
+        :param delta_air_tem_c:
+        :param e_as:
+        :param e_a:
+        :param air_density:
+        :param net_radiation:
+        :param avg_wind_speed_at_two_meters:
+        :return list of evaporation rate for each day
+        """
         evaporation = [0.0] * len(delta_air_tem_c)
 
         lv = 2450000.0
@@ -104,22 +158,43 @@ class RISF:
 
         return evaporation
 
-    def calculateLagoonSurfaceArea(self,depth):
 
+
+    def calculateLagoonSurfaceArea(self,depth):
+        """
+        Calculate surface area for lagoon
+        :param self:
+        :param depth:
+        :return Surface area for lagoon from depth
+        """
         return self.lagoon_surface_area[0]+self.lagoon_surface_area[1]*depth
 
 
 
     def getDepth(self,volume):
+        """
+        Calculate depth from given volume
+        :param self:
+        :param volume:
+        :return list of depths for each volumes
+        """
+        return [ (self.depth_calculate_constants[0]+ self.depth_calculate_constants[1]*vol + self.depth_calculate_constants[2]*math.pow(vol,2)) for vol in volume]
 
-       return [ (self.depth_calculate_constants[0]+ self.depth_calculate_constants[1]*vol + self.depth_calculate_constants[2]*math.pow(vol,2)) for vol in volume]
+
+
+
+
 #Main function
     def readInputFile(self):
+        """
+        This method gets the input file, invokes required methods to get the final depth for each day and decides about the appropriate flags
+        :param self:
+        :return:
+        """
         print("Starting ...")
         workbook = pd.read_excel('wd_CLIN.xlsx', skiprows=12)
 
         try:
-
 
             workbook.fillna(0)
 
@@ -150,8 +225,8 @@ class RISF:
 
             # calculate evaporation
 
-            evaporation = self.calculateEvaporation(delta_air_tem_c, e_as, e_a, air_density, net_radiation,
-                                                    avg_wind_speed_at_two_meters)
+            evaporation_rate = self.calculateEvaporationRate(delta_air_tem_c, e_as, e_a, air_density, net_radiation,
+                                                        avg_wind_speed_at_two_meters)
 
             print("\nPrinting average air temperature in Celcius")
             print(average_air_tem_c)
@@ -168,18 +243,18 @@ class RISF:
             print("\nPrinting delta air temperature in celcius")
             print(delta_air_tem_c)
             print("\nPrinting evaporation")
-            print(evaporation)
+            print(evaporation_rate)
 
 
-            ###Lagoon surface Area ###
+            ### Lagoon surface Area ###
             depth=0
             lagoon_surface_area= self.calculateLagoonSurfaceArea(depth)
-            evaporation_volume=[ evaporation_rate*lagoon_surface_area for evaporation_rate in evaporation]
+            evaporation_volume=[ evaporation_rate*lagoon_surface_area for evaporation_rate in evaporation_rate]
 
             print("\nPrinting evaporation volume")
             print(evaporation_volume)
 
-            ###rainfall volume###
+            ### rainfall volume###
             rainfall_volume = [lagoon_surface_area*rate for rate in rainfall_rate]
             print("\nPrinting rainfall volume")
             print(rainfall_volume)
@@ -201,7 +276,6 @@ class RISF:
             new_depth = self.getDepth(new_volume)
             print("\nPrinting new depth")
             print(new_depth)
-
 
         except:
             print("Error occurred while calculating evaporation")
