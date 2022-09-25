@@ -2,4 +2,4 @@ from RISF import  *
 
 if __name__ == "__main__":
     obj = RISF()
-    obj.readInputFile()
+    obj.readInputFile() #pass d_irrigate
