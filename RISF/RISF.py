@@ -38,6 +38,7 @@ class RISF:
         self.constants_lagoon_volume=[ 10994931.66,-94087.98,119.94]
 
         self.animal_count = 6120
+        self.animalType='Feeder-finish'
         self.manure_generation_rate = {
                      'Farrow-wean': 4.39,
                      'Farrow-feeder': 5.30,
@@ -205,27 +206,22 @@ class RISF:
         :return:
         """
         new_depth=[]
-        animal_waste = self.animal_count*self.manure_generation_rate['Farrow-wean']  # might change later
+        animal_waste = self.animal_count*self.manure_generation_rate[self.animalType]  # might change later
 
         depth=self.intial_depth
 
         for i in range(len(evaporation_rate)):
+
             lagoon_surface_area= self.calculateLagoonSurfaceArea(depth)
             lagoon_volume=self.calculateLagoonVolume(depth)
-            # print("calculated by depth f(d)",lagoon_volume)
-
-            # if lagoon_volume== 107280.61886537308:
-            #     print(depth)
-            #     return
-            # print("######\n\n")
 
             evaporation_vol = evaporation_rate[i]*lagoon_surface_area
             rainfall_vol = rainfall_rate[i]*lagoon_surface_area
 
             lagoon_volume = lagoon_volume + rainfall_vol+animal_waste - evaporation_vol
+
             #Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
-            # print("Volume from cumulative sum e.g rainfall+animal- evap",lagoon_volume)
 
             new_depth.append(depth)
         return new_depth
