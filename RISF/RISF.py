@@ -3,11 +3,12 @@ import math
 
 class RISF:
 
-    def __init__(self):
+    def __init__(self,d_risk):
         """
            The constructor initializes all the required constants that can be used for simulation
         """
         self.intial_depth=40
+        self.d_risk=d_risk
         self.cols = {'date': 'Date',
                      'avg_air_tem_f': 'Average Air Temperature (F)',
                      'avg_air_tem_c': 'Average Air Temperature (C)',
@@ -32,6 +33,7 @@ class RISF:
         self.constants_deltas = [4098, 0.6108, 17.27, 237.3]  #make constants
         self.constants_radiation_a = 0.65
         self.constants_radiation_b = -0.85
+        self.constants_depth_calculate=[1.4235e+02, -1.5777e-05, 2.6079e-13]
 
 
         self.constants_lagoon_surface_area=[151254, -387.11]
@@ -47,7 +49,6 @@ class RISF:
                      'Wean-finish': 1.17,
                      'Feeder-finish': 1.37
                      }
-        self.constants_depth_calculate=[1.4235e+02, -1.5777e-05, 2.6079e-13]
 
 
 
@@ -60,7 +61,7 @@ class RISF:
         :return list of deltas calculated for average air temperature (C)
         """
         delta_average_air_tem_c = [(1000 * (
-                self.constants_deltas[0] * self.constants_deltas[1] * math.exp((self.constants_deltas[2] * tem)) / (tem + self.constants_deltas[3])) / (
+                self.constants_deltas[0] * self.constants_deltas[1] * math.exp((self.constants_deltas[2] * tem) / (tem + self.constants_deltas[3]))) / (
                                         pow(tem + self.constants_deltas[3], 2))) for tem in average_air_tem_c]
         return delta_average_air_tem_c
 
@@ -84,7 +85,6 @@ class RISF:
 
     def es(self, min_air_tem_c, max_air_tem_c):
        """
-
        :param self:
        :param min_air_tem_c:
        :param max_air_tem_c:
@@ -268,17 +268,17 @@ class RISF:
                                                         avg_wind_speed_at_two_meters)
 
             print("\nPrinting average air temperature in Celcius")
-            print(average_air_tem_c)
+            print(average_air_tem_c) #good with this
             print("\nPrint e_a")
-            print(e_a)
+            print(e_a) #good with this
             print("\nPrinting e_as")
-            print(e_as)
+            print(e_as) #good with this
             print("\nPrinting  net solar radiation")
-            print(net_radiation)
+            print(net_radiation) #good with this
             print("\nPrinting average wind velocity")
-            print(avg_wind_speed_at_two_meters)
+            print(avg_wind_speed_at_two_meters) #good with this
             print("\nPrinting air density")
-            print(air_density)
+            print(air_density) #good with this
             print("\nPrinting delta air temperature in celcius")
             print(delta_air_tem_c)
             print("\nPrinting evaporation")
