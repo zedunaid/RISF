@@ -209,6 +209,8 @@ class RISF:
         animal_waste = self.animal_count*self.manure_generation_rate[self.animalType]  # might change later
 
         depth=self.intial_depth
+        overflow_flag=[]
+
 
         for i in range(len(evaporation_rate)):
 
@@ -223,8 +225,16 @@ class RISF:
             #Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
 
+            if depth <=1:
+                overflow_flag.append("Lagoon overflow even")
+
+            elif depth<= self.d_risk:
+                overflow_flag.append("“overflow risk")
+            else:
+                overflow_flag.append("N/A")
+
             new_depth.append(depth)
-        return new_depth
+        return new_depth,overflow_flag
 
 
 #Main function
@@ -268,27 +278,30 @@ class RISF:
                                                         avg_wind_speed_at_two_meters)
 
             print("\nPrinting average air temperature in Celcius")
-            print(average_air_tem_c) #good with this
+            print(average_air_tem_c)
             print("\nPrint e_a")
-            print(e_a) #good with this
+            print(e_a)
             print("\nPrinting e_as")
-            print(e_as) #good with this
+            print(e_as)
             print("\nPrinting  net solar radiation")
-            print(net_radiation) #good with this
+            print(net_radiation)
             print("\nPrinting average wind velocity")
-            print(avg_wind_speed_at_two_meters) #good with this
+            print(avg_wind_speed_at_two_meters)
             print("\nPrinting air density")
-            print(air_density) #good with this
+            print(air_density)
             print("\nPrinting delta air temperature in celcius")
             print(delta_air_tem_c)
             print("\nPrinting evaporation")
             print(evaporation_rate)
 
 
-            new_depth= self.calculateNewDepths(evaporation_rate, rainfall_rate)
+            new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate)
 
             print("\nPrinting new Depth")
             print(new_depth)
+
+            print("\nPrinting overflow flags")
+            print(overflow_flag)
 
         except:
             print("Error occurred while calculating evaporation")
