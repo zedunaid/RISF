@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module RISF</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>RISF</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/Users/vinay/Desktop/BIO/RISF/RISF/RISF.py">/Users/vinay/Desktop/BIO/RISF/RISF/RISF.py</a></font></td></tr></table>
+    <p></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="math.html">math</a><br>
+</td><td width="25%" valign=top><a href="pandas.html">pandas</a><br>
+</td><td width="25%" valign=top></td><td width="25%" valign=top></td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="builtins.html#object">builtins.object</a>
+</font></dt><dd>
+<dl>
+<dt><font face="helvetica, arial"><a href="RISF.html#RISF">RISF</a>
+</font></dt></dl>
+</dd>
+</dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RISF">class <strong>RISF</strong></a>(<a href="builtins.html#object">builtins.object</a>)</font></td></tr>
+    
+<tr><td bgcolor="#ffc8d8"><tt>&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RISF-__init__"><strong>__init__</strong></a>(self)</dt><dd><tt>The&nbsp;constructor&nbsp;initializes&nbsp;all&nbsp;the&nbsp;required&nbsp;constants&nbsp;that&nbsp;can&nbsp;be&nbsp;used&nbsp;for&nbsp;simulation</tt></dd></dl>
+
+<dl><dt><a name="RISF-calculateEvaporationRate"><strong>calculateEvaporationRate</strong></a>(self, delta_air_tem_c, e_as, e_a, air_density, net_radiation, avg_wind_speed_at_two_meters)</dt><dd><tt>Calculates&nbsp;final&nbsp;evaporation&nbsp;from&nbsp;given&nbsp;parameters<br>
+:param&nbsp;self:<br>
+:param&nbsp;delta_air_tem_c:<br>
+:param&nbsp;e_as:<br>
+:param&nbsp;e_a:<br>
+:param&nbsp;air_density:<br>
+:param&nbsp;net_radiation:<br>
+:param&nbsp;avg_wind_speed_at_two_meters:<br>
+:return&nbsp;list&nbsp;of&nbsp;evaporation&nbsp;rate&nbsp;for&nbsp;each&nbsp;day</tt></dd></dl>
+
+<dl><dt><a name="RISF-calculateLagoonSurfaceArea"><strong>calculateLagoonSurfaceArea</strong></a>(self, depth)</dt><dd><tt>Calculate&nbsp;surface&nbsp;area&nbsp;for&nbsp;lagoon<br>
+:param&nbsp;self:<br>
+:param&nbsp;depth:<br>
+:return&nbsp;Surface&nbsp;area&nbsp;for&nbsp;lagoon&nbsp;from&nbsp;depth</tt></dd></dl>
+
+<dl><dt><a name="RISF-ea"><strong>ea</strong></a>(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per)</dt><dd><tt>:param&nbsp;self:<br>
+:param&nbsp;min_air_tem_c:<br>
+:param&nbsp;max_air_tem_c:<br>
+:param&nbsp;max_rel_humidity_per:<br>
+:param&nbsp;min_rel_humidity_per:<br>
+:return:</tt></dd></dl>
+
+<dl><dt><a name="RISF-es"><strong>es</strong></a>(self, min_air_tem_c, max_air_tem_c)</dt><dd><tt>:param&nbsp;self:<br>
+:param&nbsp;min_air_tem_c:<br>
+:param&nbsp;max_air_tem_c:<br>
+:return:</tt></dd></dl>
+
+<dl><dt><a name="RISF-getAirDensity"><strong>getAirDensity</strong></a>(self, average_air_tem_c)</dt><dd><tt>Calculates&nbsp;air&nbsp;density&nbsp;from&nbsp;average&nbsp;air&nbsp;temperature&nbsp;(C)<br>
+:param&nbsp;self:<br>
+:param&nbsp;average_air_tem_c:<br>
+:return&nbsp;list&nbsp;of&nbsp;air&nbsp;density:</tt></dd></dl>
+
+<dl><dt><a name="RISF-getDelta"><strong>getDelta</strong></a>(self, average_air_tem_c)</dt><dd><tt>Calculates&nbsp;delta&nbsp;for&nbsp;each&nbsp;average&nbsp;air&nbsp;temperature&nbsp;(C)<br>
+:param&nbsp;self:<br>
+:param&nbsp;average_air_tem_c:<br>
+:return&nbsp;list&nbsp;of&nbsp;deltas&nbsp;calculated&nbsp;for&nbsp;average&nbsp;air&nbsp;temperature&nbsp;(C)</tt></dd></dl>
+
+<dl><dt><a name="RISF-getDepth"><strong>getDepth</strong></a>(self, volume)</dt><dd><tt>Calculate&nbsp;depth&nbsp;from&nbsp;given&nbsp;volume<br>
+:param&nbsp;self:<br>
+:param&nbsp;volume:<br>
+:return&nbsp;list&nbsp;of&nbsp;depths&nbsp;for&nbsp;each&nbsp;volumes</tt></dd></dl>
+
+<dl><dt><a name="RISF-getNetRadiation"><strong>getNetRadiation</strong></a>(self, avg_solar_rad)</dt><dd><tt>Calculated&nbsp;net&nbsp;radiation&nbsp;from&nbsp;average&nbsp;solar&nbsp;radiation<br>
+:param&nbsp;self:<br>
+:param&nbsp;avg_solar_rad:<br>
+:return&nbsp;list&nbsp;of&nbsp;net&nbsp;radiation&nbsp;:</tt></dd></dl>
+
+<dl><dt><a name="RISF-getWindSpeed"><strong>getWindSpeed</strong></a>(self, avg_wind_speed)</dt><dd><tt>Calculates&nbsp;wind&nbsp;velocity&nbsp;form&nbsp;average&nbsp;wind&nbsp;speed&nbsp;(mps)<br>
+:param&nbsp;self:<br>
+:param&nbsp;avg_wind_speed:<br>
+:return&nbsp;list&nbsp;of&nbsp;wind&nbsp;velocity:</tt></dd></dl>
+
+<dl><dt><a name="RISF-readInputFile"><strong>readInputFile</strong></a>(self)</dt><dd><tt>This&nbsp;method&nbsp;gets&nbsp;the&nbsp;input&nbsp;file,&nbsp;invokes&nbsp;required&nbsp;methods&nbsp;to&nbsp;get&nbsp;the&nbsp;final&nbsp;depth&nbsp;for&nbsp;each&nbsp;day&nbsp;and&nbsp;decides&nbsp;about&nbsp;the&nbsp;appropriate&nbsp;flags<br>
+:param&nbsp;self:<br>
+:return:</tt></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><tt>dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><tt>list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</tt></dd>
+</dl>
+</td></tr></table></td></tr></table>
+</body></html>
