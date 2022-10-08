@@ -6,13 +6,10 @@ from collections import defaultdict
 
 class RISF:
 
-    def __init__(self, d_risk):
+    def __init__(self):
         """
            The constructor initializes all the required constants that can be used for simulation
         """
-        self.intial_depth = 40
-        self.d_risk = d_risk
-        self.d_stop=50.4
         self.d_irrigate=30
 
         self.mmToInchConversion = 0.0393701
@@ -20,23 +17,13 @@ class RISF:
         self.maxVolPerField = 27000  #(gallon/acre)
 
         self.cols = {'date': 'Date',
-                     'avg_air_tem_f': 'Average Air Temperature (F)',
-                     'avg_air_tem_c': 'Average Air Temperature (C)',
-                     'max_air_tem_F': 'Maximum Air Temperature (F)',
                      'max_air_tem_c': 'Maximum Air Temperature (C)',
-                     'min_air_tem_f': 'Minimum Air Temperature (F)',
                      'min_air_tem_c': 'Minimum Air Temperature (C)',
-                     'avg_rel_humidity_per': 'Average Relative Humidity (%)',
                      'max_rel_humidity_per': 'Maximum Relative Humidity (%)',
                      'min_rel_humidity_per': 'Minimum Relative Humidity (%)',
                      'total_per': 'Total Precipitation (in)',
                      'avg_solar_rad': 'Average Solar Radiation (W/m2)',
-                     'avg_wind_speed_mph': 'Average Wind Speed (mph)',
                      'avg_wind_speed_mps': 'Average Wind Speed (mps)',
-                     'max_wind_speed_mph': 'Maximum Wind Speed (mph)',
-                     'max_wind_speed_mps': 'Maximum Wind Speed (mps)',
-                     'min_wind_speed_mph': 'Minimum Wind Speed (mph)',
-                     'min_wind_speed_mps': 'Minimum Wind Speed (mps)'
                      }
         self.constants_windVelocity = [4.87, 67.8, 5.42]  # make constants
         self.constants_z2 = 10.0  # elevation constants
@@ -45,13 +32,14 @@ class RISF:
         self.constants_radiation_a = 0.65
         self.constants_radiation_b = -0.85
 
-        self.constants_depth_calculate = [1.4235e+02, -1.5777e-05, 2.6079e-13]
+        # self.Lagoon_d_Coeffs = [1.4235e+02, -1.5777e-05, 2.6079e-13]
+        #
+        # self.Lagoon_A_Coeffs = [151254, -387.11]
+        # self.Lagoon_V_Coeffs = [10994931.66, -94087.98, 119.94]
 
-        self.constants_lagoon_surface_area = [151254, -387.11]
-        self.constants_lagoon_volume = [10994931.66, -94087.98, 119.94]
+        # self.AnimalCount = 6120
+        # self.AnimalType = 'Feeder-finish'
 
-        self.animal_count = 6120
-        self.animalType = 'Feeder-finish'
         self.manure_generation_rate = {
             'Farrow-wean': 4.39,
             'Farrow-feeder': 5.30,
@@ -67,6 +55,26 @@ class RISF:
             "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
             "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
         }
+
+
+
+    def getFarmDetails(self):
+        workbook = pd.read_excel('Input_Template_Farm.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
+        data=(workbook['Value'].values.tolist())
+
+        #Assigning value to the variables from excel
+        self.AnimalType=(data[0])
+        self.AnimalCount=float(data[1])
+        self.WaterLoss_Coeff= data[2]
+        self.Lagoon_V_Coeffs= [float(v.strip()) for v in data[3].split(',')]
+        self.Lagoon_A_Coeffs=  [float(a.strip()) for a in data[4].split(',')]
+        self.Lagoon_d_Coeffs=  [float(d.strip()) for d in data[5].split(',')]
+        self.d_initial= float(data[6])
+        self.d_start=float(data[7])    #ToDo When to use this
+        self.d_stop = float(data[8])
+        self.d_freeboard=float(data[9])
+        self.Avg_N_lbkgal=float(data[10])
+        print(data)
 
 
     def generateRandomVolume(self,acre):
@@ -190,7 +198,7 @@ class RISF:
         :param depth:
         :return Surface area for lagoon from depth
         """
-        return self.constants_lagoon_surface_area[0] + self.constants_lagoon_surface_area[1] * depth
+        return self.Lagoon_A_Coeffs[0] + self.Lagoon_A_Coeffs[1] * depth
 
     def calculateLagoonVolume(self, depth):
         """
@@ -200,7 +208,7 @@ class RISF:
         :return: Volume for lagoon from depth
         """
 
-        return  self.constants_lagoon_volume[0] + self.constants_lagoon_volume[1]*depth + self.constants_lagoon_volume[2]*depth * depth
+        return self.Lagoon_V_Coeffs[0] + self.Lagoon_V_Coeffs[1] * depth + self.Lagoon_V_Coeffs[2] * depth * depth
 
 
     def getDepthFromVol(self, volume):
@@ -210,7 +218,7 @@ class RISF:
         :param volume:
         :return list of depths for each volumes
         """
-        return self.constants_depth_calculate[0] + self.constants_depth_calculate[1] * volume + self.constants_depth_calculate[2] * volume*volume
+        return self.Lagoon_d_Coeffs[0] + self.Lagoon_d_Coeffs[1] * volume + self.Lagoon_d_Coeffs[2] * volume * volume
 
 
     def isIrrigationReq(self,irrigate_fields,lagoon_volume):
@@ -224,28 +232,29 @@ class RISF:
 
         fields_volumes.sort(key=lambda x:x[0])
         # print(fields_volumes)
+        lbsTogalConversion = 1000/self.Avg_N_lbkgal
         irrigate_vol=0
         for values in fields_volumes:
-                if irrigate_fields[values[1]][values[2]][0]*400 < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
+                if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
                      continue
-                if irrigate_fields[values[1]][values[2]][0]*400>self.maxVolPerField*irrigate_fields[values[1]][values[2]][2]:
+                if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion>self.maxVolPerField*irrigate_fields[values[1]][values[2]][2]:
                       volume_alloted =  self.generateRandomVolume(irrigate_fields[values[1]][values[2]][2])
                       if volume_alloted> lagoon_volume:
                           continue
                   # lagoon_volume-=volume_alloted
                   # irrigate_vol+=volume_alloted
-                  # irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/400)
+                  # irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/lbsTogalConversion)
                 else:
-                    volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*400)
+                    volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
 
-                # print("lg",lagoon_volume,irrigate_fields[values[1]][values[2]][0],volume_alloted/400)
+                # print("lg",lagoon_volume,irrigate_fields[values[1]][values[2]][0],volume_alloted/lbsTogalConversion)
                 lagoon_volume-=volume_alloted
                 irrigate_vol+=volume_alloted
-                irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/400)
+                irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/lbsTogalConversion)
 
                 # print(irrigate_fields[values[1]],"oo")
                 # if irrigate_fields[values[1]][0][0]<0:
-                #     print("less&&&&#################,",volume_alloted,lagoon_volume,irrigate_fields[values[1]][values[2]][0]*400)
+                #     print("less&&&&#################,",volume_alloted,lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
                 #     print("hello world")
         return  irrigate_vol
 
@@ -257,9 +266,9 @@ class RISF:
         :return:
         """
         new_depth = []
-        animal_waste = self.animal_count * self.manure_generation_rate[self.animalType]  # might change later
+        animal_waste = self.AnimalCount * self.manure_generation_rate[self.AnimalType]  # might change later
 
-        depth = self.intial_depth
+        depth = self.d_initial
         overflow_flag = []
         irrigate_fields= defaultdict(list)
         invent_irri_vol=[]
@@ -287,7 +296,7 @@ class RISF:
 
 
             irrigation_volume=0
-            if i%7==0 and depth<50.40 and rainfall_vol==0:  #irrigation decision per week
+            if i%7==0 and depth<self.d_stop and rainfall_vol==0:  #irrigation decision per week
                 irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume)
 
             invent_irri_vol.append(irrigation_volume)
@@ -300,7 +309,7 @@ class RISF:
             if depth <= 1:
                 overflow_flag.append("Lagoon overflow event")
 
-            elif depth <= self.d_risk:
+            elif depth <= self.d_freeboard:
                 overflow_flag.append("overflow risk")
             else:
                 overflow_flag.append("N/A")

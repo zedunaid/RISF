@@ -8,7 +8,11 @@ are
 
 **Note:** Make sure to add Python environment to the IDE
 
+## Python  Set-Up
+* [Intellij](https://www.jetbrains.com/help/idea/creating-virtual-environment.html) 
+* [Visual Studio Code](https://code.visualstudio.com/docs/python/python-tutorial)
 ## Installation
+Open the terminal and run the below git commands
 ```
 git clone https://github.com/kunalpatange/RISF.git
 cd RISF/RISF
