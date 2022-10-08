@@ -59,7 +59,7 @@ class RISF:
 
 
     def getFarmDetails(self):
-        workbook = pd.read_excel('Input_Template_Farm.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
+        workbook = pd.read_excel('Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
         data=(workbook['Value'].values.tolist())
 
         #Assigning value to the variables from excel
@@ -208,7 +208,7 @@ class RISF:
         :return: Volume for lagoon from depth
         """
 
-        return self.Lagoon_V_Coeffs[0] + self.Lagoon_V_Coeffs[1] * depth + self.Lagoon_V_Coeffs[2] * depth * depth
+        return self.Lagoon_V_Coeffs[0] + self.Lagoon_V_Coeffs[1] * depth + self.Lagoon_V_Coeffs[2] *depth*depth + self.Lagoon_V_Coeffs[3] * depth*depth*depth + self.Lagoon_V_Coeffs[4] * depth*depth*depth*depth
 
 
     def getDepthFromVol(self, volume):
@@ -218,7 +218,7 @@ class RISF:
         :param volume:
         :return list of depths for each volumes
         """
-        return self.Lagoon_d_Coeffs[0] + self.Lagoon_d_Coeffs[1] * volume + self.Lagoon_d_Coeffs[2] * volume * volume
+        return self.Lagoon_d_Coeffs[0] + self.Lagoon_d_Coeffs[1] * volume + self.Lagoon_d_Coeffs[2] *volume*volume + self.Lagoon_d_Coeffs[3] *volume*volume*volume + self.Lagoon_d_Coeffs[4] *volume*volume*volume*volume
 
 
     def isIrrigationReq(self,irrigate_fields,lagoon_volume):
@@ -241,9 +241,7 @@ class RISF:
                       volume_alloted =  self.generateRandomVolume(irrigate_fields[values[1]][values[2]][2])
                       if volume_alloted> lagoon_volume:
                           continue
-                  # lagoon_volume-=volume_alloted
-                  # irrigate_vol+=volume_alloted
-                  # irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/lbsTogalConversion)
+
                 else:
                     volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
 
@@ -252,10 +250,6 @@ class RISF:
                 irrigate_vol+=volume_alloted
                 irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/lbsTogalConversion)
 
-                # print(irrigate_fields[values[1]],"oo")
-                # if irrigate_fields[values[1]][0][0]<0:
-                #     print("less&&&&#################,",volume_alloted,lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
-                #     print("hello world")
         return  irrigate_vol
 
     def calculateNewDepths(self, evaporation_rate, rainfall_rate,dates):
@@ -283,9 +277,6 @@ class RISF:
 
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
-
-
-           # irrigate_volume=0  #"03-01": [1, "09-30", 3, "bermuda", 6, 46],
 
 
             if cur_date in self.field_parameters:
@@ -321,6 +312,7 @@ class RISF:
             irrigate_fields.pop(cur_date,None)
 
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
+
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag]
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag"]
