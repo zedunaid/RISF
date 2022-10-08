@@ -237,6 +237,7 @@ class RISF:
                   # irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/400)
                 else:
                     volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*400)
+
                 # print("lg",lagoon_volume,irrigate_fields[values[1]][values[2]][0],volume_alloted/400)
                 lagoon_volume-=volume_alloted
                 irrigate_vol+=volume_alloted
@@ -273,6 +274,8 @@ class RISF:
 
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
+
+
            # irrigate_volume=0  #"03-01": [1, "09-30", 3, "bermuda", 6, 46],
 
 
@@ -313,6 +316,7 @@ class RISF:
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag"]
         df1.to_excel("output.xlsx",    sheet_name='Sheet_name_1')
+
         return new_depth, overflow_flag
 
 
