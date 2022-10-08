@@ -1,4 +1,4 @@
-# RISF
+# RISF Project - Department of Biological and Agricultural Engineering
 ## IDE Set-Up
 Any IDE can be used to run this project for further development. Some of the recommended IDEs
 are [Intellij](https://www.jetbrains.com/idea/download/#section=windows), [VSCode](https://code.visualstudio.com/download)
