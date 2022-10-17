@@ -13,6 +13,8 @@ class RISF:
         self.d_irrigate=30
 
         self.mmToInchConversion = 0.0393701
+        self.inchToFeetConversion=0.08333
+        self.cuFtToGal=7.48052
         self.minVolPerField = 10000  #(gallon/acre)
         self.maxVolPerField = 27000  #(gallon/acre)
 
@@ -39,6 +41,7 @@ class RISF:
 
         # self.AnimalCount = 6120
         # self.AnimalType = 'Feeder-finish'
+        self.wastageWater=0.25+1
 
         self.manure_generation_rate = {
             'Farrow-wean': 4.39,
@@ -59,23 +62,26 @@ class RISF:
 
 
     def getFarmDetails(self):
-        workbook = pd.read_excel('Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
-        data=(workbook['Value'].values.tolist())
+        try:
 
-        #Assigning value to the variables from excel
-        self.AnimalType=(data[0])
-        self.AnimalCount=float(data[1])
-        self.WaterLoss_Coeff= data[2]
-        self.Lagoon_V_Coeffs= [float(v.strip()) for v in data[3].split(',')]
-        self.Lagoon_A_Coeffs=  [float(a.strip()) for a in data[4].split(',')]
-        self.Lagoon_d_Coeffs=  [float(d.strip()) for d in data[5].split(',')]
-        self.d_initial= float(data[6])
-        self.d_start=float(data[7])    #ToDo When to use this
-        self.d_stop = float(data[8])
-        self.d_freeboard=float(data[9])
-        self.Avg_N_lbkgal=float(data[10])
-        print(data)
+            workbook = pd.read_excel('Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
+            data=(workbook['Value'].values.tolist())
 
+            #Assigning value to the variables from excel
+            self.AnimalType=(data[0])
+            self.AnimalCount=float(data[1])
+            self.WaterLoss_Coeff= (data[2])
+            self.Lagoon_V_Coeffs= [float(v.strip()) for v in data[3].split(',')]
+            self.Lagoon_A_Coeffs=  [float(a.strip()) for a in data[4].split(',')]
+            self.Lagoon_d_Coeffs=  [float(d.strip()) for d in data[5].split(',')]
+            self.d_initial= float(data[6])
+            self.d_start=float(data[7])    #ToDo When to use this
+            self.d_stop = float(data[8])
+            self.d_freeboard=float(data[9])
+            self.Avg_N_lbkgal=float(data[10])
+            print(data)
+        except:
+            print("Error while fetching farm data,please check the input file")
 
     def generateRandomVolume(self,acre):
         """
@@ -260,21 +266,27 @@ class RISF:
         :return:
         """
         new_depth = []
-        animal_waste = self.AnimalCount * self.manure_generation_rate[self.AnimalType]  # might change later
+        animal_waste = self.AnimalCount * self.manure_generation_rate[self.AnimalType]*self.wastageWater # might change later
 
         depth = self.d_initial
         overflow_flag = []
         irrigate_fields= defaultdict(list)
         invent_irri_vol=[]
         invent_lagoon_vol=[]
+        delta_change=[]
+        daily_evap=[]
+        daily_rainfall=[]
+        day=0
         for i in range(len(evaporation_rate)):
 
             lagoon_surface_area = self.calculateLagoonSurfaceArea(depth)
-            lagoon_volume = self.calculateLagoonVolume(depth)
-
-            evaporation_vol = evaporation_rate[i] * lagoon_surface_area * self.mmToInchConversion
-            rainfall_vol = rainfall_rate[i] * lagoon_surface_area
-
+            if day==0:
+                lagoon_volume = self.calculateLagoonVolume(depth)
+            day+=1
+            evaporation_vol = evaporation_rate[i] * lagoon_surface_area * self.mmToInchConversion*self.cuFtToGal*self.inchToFeetConversion
+            rainfall_vol = rainfall_rate[i] * lagoon_surface_area*self.inchToFeetConversion*self.cuFtToGal
+            daily_rainfall.append(rainfall_vol)
+            daily_evap.append(evaporation_vol)
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
 
@@ -291,7 +303,11 @@ class RISF:
                 irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume)
 
             invent_irri_vol.append(irrigation_volume)
-            lagoon_volume = lagoon_volume + rainfall_vol + animal_waste - evaporation_vol - irrigation_volume
+            incrementDelta= rainfall_vol + animal_waste - evaporation_vol - irrigation_volume
+            #toDo wastewater
+            delta_change.append(incrementDelta)
+            lagoon_volume = lagoon_volume + incrementDelta
+
 
             # Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
@@ -313,9 +329,9 @@ class RISF:
 
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
-        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag]
+        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         df1= pd.DataFrame(cols).transpose()
-        df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag"]
+        df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
         df1.to_excel("output.xlsx",    sheet_name='Sheet_name_1')
 
         return new_depth, overflow_flag
