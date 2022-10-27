@@ -4,6 +4,10 @@ import random
 from datetime import datetime
 from collections import defaultdict
 
+"""
+“Impact of Future Climate Events on NC Animal Agriculture Systems
+"""
+
 class RISF:
 
     def __init__(self):
@@ -64,7 +68,7 @@ class RISF:
     def getFarmDetails(self):
         try:
 
-            workbook = pd.read_excel('Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
+            workbook = pd.read_excel('./Input_Files/Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
             data=(workbook['Value'].values.tolist())
 
             #Assigning value to the variables from excel
@@ -85,7 +89,7 @@ class RISF:
 
 
     def getFieldDetails(self):
-        workbook = pd.read_excel('Input_Template_Field.xlsx', skiprows=1,nrows=5,usecols=range(6,12))
+        workbook = pd.read_excel('./Input_Files/Input_Template_Field.xlsx', skiprows=1,nrows=5,usecols=range(6,12))
 
         # print(workbook)
         self.field_parameter={}
@@ -98,9 +102,10 @@ class RISF:
             self.crop_mapper[row['Crop Code']]=window_start_date
         # print("")
         # print(self.field_parameter,self.crop_mapper)
-        workbook = pd.read_excel('Input_Template_Field.xlsx')
+        workbook = pd.read_excel('./Input_Files/Input_Template_Field.xlsx')
         number_of_rows=workbook.iloc[0][1]
         self.field_input={}
+
         for i in range(3,3+number_of_rows):
            # print(workbook.iloc[i][2])
 
@@ -112,6 +117,7 @@ class RISF:
 
         print("printing final field")
         print(self.field_input)
+
         """
            self.field_parameters = {
             "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
@@ -127,6 +133,7 @@ class RISF:
         """
         return random.randint(self.minVolPerField*acre+1,self.maxVolPerField*acre-1)   #randomly generates volume from the range
 
+
     def getDelta(self, average_air_tem_c):
         """
         Calculates delta for each average air temperature (C)
@@ -139,6 +146,8 @@ class RISF:
             (self.constants_deltas[2] * tem) / (tem + self.constants_deltas[3]))) / (
                                         pow(tem + self.constants_deltas[3], 2))) for tem in average_air_tem_c]
         return delta_average_air_tem_c
+
+
 
     def ea(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per):
         """
@@ -156,6 +165,8 @@ class RISF:
                     (self.constants_deltas[2] * min_air_tem_c) / (min_air_tem_c + self.constants_deltas[3]))) * (
                                   max_rel_humidity_per / 100))) / 2
 
+
+
     def es(self, min_air_tem_c, max_air_tem_c):
         """
        :param self:
@@ -169,6 +180,8 @@ class RISF:
                     (self.constants_deltas[2] * min_air_tem_c) / (min_air_tem_c + self.constants_deltas[3])))
                        ) / 2
 
+
+
     def getNetRadiation(self, avg_solar_rad):
         """
         Calculated net radiation from average solar radiation
@@ -177,6 +190,7 @@ class RISF:
         :return list of net radiation :
         """
         return [radiation * self.constants_radiation_a + self.constants_radiation_b for radiation in avg_solar_rad]
+
 
     def getWindSpeed(self, avg_wind_speed):
         """
@@ -189,6 +203,7 @@ class RISF:
             self.constants_windVelocity[1] * self.constants_z2 - self.constants_windVelocity[2])) for velocity
                 in avg_wind_speed]
 
+
     def getAirDensity(self, average_air_tem_c):
         """
         Calculates air density from average air temperature (C)
@@ -199,6 +214,7 @@ class RISF:
         p = 101325
         r = 287.5
         return [p / (r * (tem + 273)) for tem in average_air_tem_c]
+
 
     def calculateEvaporationRate(self, delta_air_tem_c, e_as, e_a, air_density, net_radiation,
                                  avg_wind_speed_at_two_meters):
@@ -233,6 +249,7 @@ class RISF:
                                                                                                         (pow(math.log(self.constants_z2 / z0), 2)))) * (e_as[i] - e_a[i])))
 
         return evaporation
+
 
     def calculateLagoonSurfaceArea(self, depth):
         """
@@ -280,7 +297,7 @@ class RISF:
         irrigate_vol=0
         for values in fields_volumes:
                 if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
-                     print("continuuu ..", values[1],self.minVolPerField*irrigate_fields[values[1]][values[2]][2],irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
+                     # print("continuuu ..", values[1],self.minVolPerField*irrigate_fields[values[1]][values[2]][2],irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
                      continue
                 if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion>self.maxVolPerField*irrigate_fields[values[1]][values[2]][2]:
                       volume_alloted =  self.generateRandomVolume(irrigate_fields[values[1]][values[2]][2])
@@ -380,18 +397,19 @@ class RISF:
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
         file_name =  str(datetime.now())+".xlsx"
+        directory_output = './Output_Files/'
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
 
-        df1.to_excel("Report-"+file_name,    sheet_name='Report')
+        df1.to_excel(directory_output+"Report-"+file_name, sheet_name='Report')
         df2 = df1.copy()
         df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}'.format(year=x.year, month=x.month))
 
         df2 = df2.groupby('YearMonth').sum()
-        df2 = df2[["Lagoon Volumes","Delta change","rainfall","evaporation"]]
+        df2 = df2[["Delta change","rainfall","evaporation"]]
         print(df2)
-        df2.to_excel("Aggregated-Report-"+file_name,    sheet_name='aggregation')
+        df2.to_excel(directory_output+"Aggregated-Report-"+file_name, sheet_name='aggregation')
 
         return new_depth, overflow_flag
 
