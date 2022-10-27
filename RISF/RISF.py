@@ -83,9 +83,45 @@ class RISF:
         except:
             print("Error while fetching farm data,please check the input file")
 
+
+    def getFieldDetails(self):
+        workbook = pd.read_excel('Input_Template_Field.xlsx', skiprows=1,nrows=5,usecols=range(6,12))
+
+        # print(workbook)
+        self.field_parameters={}
+        self.crop_mapper={}
+        for index,row in workbook.iterrows():
+            # print(row['Crop name'])
+            window_start_date= str(row['Start Appl. Window Date'])[5:11].strip()
+            window_end_date=str(row['End Appl. Window Date'])[5:11].strip()
+            self.field_parameters[window_start_date]=[row['Crop Code'],window_end_date,row['Crop name'],float(row['N removal per unit yield (lb/yield)'])]
+            self.crop_mapper[row['Crop Code']]=window_start_date
+        # print("")
+        # print(self.field_parameters,self.crop_mapper)
+        workbook = pd.read_excel('Input_Template_Field.xlsx')
+        number_of_rows=workbook.iloc[0][1]
+        self.field_input={}
+        for i in range(3,3+number_of_rows):
+           # print(workbook.iloc[i][2])
+
+           #Taking cumulative of nitrogen required incase there are more than one occurence of same field
+            if self.crop_mapper[workbook.iloc[i][2]] not in self.field_input:
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[1]
+            else:
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]][-1]+=1
+
+        print("printing final field")
+        print(self.field_input)
+        """
+           self.field_parameters = {
+            "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
+            "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
+            "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
+            "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
+        }"""
+
     def generateRandomVolume(self,acre):
         """
-
         :return:  random volume in the range 10,000- 27,000
         """
         return random.randint(self.minVolPerField*acre+1,self.maxVolPerField*acre-1)   #randomly generates volume from the range
@@ -239,6 +275,7 @@ class RISF:
         fields_volumes.sort(key=lambda x:x[0])
         # print(fields_volumes)
         lbsTogalConversion = 1000/self.Avg_N_lbkgal
+
         irrigate_vol=0
         for values in fields_volumes:
                 if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
@@ -289,7 +326,13 @@ class RISF:
             daily_evap.append(evaporation_vol)
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
-
+            """
+                  self.field_parameters = {
+                   "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
+                   "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
+                   "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
+                   "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
+               }"""
 
             if cur_date in self.field_parameters:
                 end_date = self.field_parameters[cur_date][1]
@@ -299,6 +342,7 @@ class RISF:
 
 
             irrigation_volume=0
+            print("irirtage fields ---- ", irrigate_fields)
             if i%7==0 and depth<self.d_stop and rainfall_vol==0:  #irrigation decision per week
                 irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume)
 
@@ -308,6 +352,8 @@ class RISF:
             delta_change.append(incrementDelta)
             lagoon_volume = lagoon_volume + incrementDelta
 
+            #toDo allocation of volume to each field during the weekly cycle
+            #Todo another file for aggregation per year
 
             # Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
@@ -329,10 +375,11 @@ class RISF:
 
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
+        file_name =  str(datetime.now())+".xlsx"
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
-        df1.to_excel("output.xlsx",    sheet_name='Sheet_name_1')
+        df1.to_excel(file_name,    sheet_name='Sheet_name_1')
 
         return new_depth, overflow_flag
 
