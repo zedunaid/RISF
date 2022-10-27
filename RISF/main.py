@@ -6,7 +6,7 @@ if __name__ == "__main__":
     obj.getFarmDetails()
 
     # #Get Field Details from Excel
-   # obj.getFieldDetails()
+    obj.getFieldDetails()
 
     #Get New Depths and Irrigate fields
     obj.readInputFile()

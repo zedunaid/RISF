@@ -41,7 +41,7 @@ class RISF:
 
         # self.AnimalCount = 6120
         # self.AnimalType = 'Feeder-finish'
-        self.wastageWater=0.25+1
+        # self.wastageWater=0.25+1
 
         self.manure_generation_rate = {
             'Farrow-wean': 4.39,
@@ -52,12 +52,12 @@ class RISF:
             'Feeder-finish': 1.37
         }
 
-        self.field_parameters = {
-            "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
-            "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
-            "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
-            "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
-        }
+        # self.field_parameters = {
+        #     "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
+        #     "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
+        #     "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
+        #     "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
+        # }
 
 
 
@@ -70,7 +70,7 @@ class RISF:
             #Assigning value to the variables from excel
             self.AnimalType=(data[0])
             self.AnimalCount=float(data[1])
-            self.WaterLoss_Coeff= (data[2])
+            self.wastageWater= float(data[2])+1
             self.Lagoon_V_Coeffs= [float(v.strip()) for v in data[3].split(',')]
             self.Lagoon_A_Coeffs=  [float(a.strip()) for a in data[4].split(',')]
             self.Lagoon_d_Coeffs=  [float(d.strip()) for d in data[5].split(',')]
@@ -88,16 +88,16 @@ class RISF:
         workbook = pd.read_excel('Input_Template_Field.xlsx', skiprows=1,nrows=5,usecols=range(6,12))
 
         # print(workbook)
-        self.field_parameters={}
+        self.field_parameter={}
         self.crop_mapper={}
         for index,row in workbook.iterrows():
             # print(row['Crop name'])
             window_start_date= str(row['Start Appl. Window Date'])[5:11].strip()
             window_end_date=str(row['End Appl. Window Date'])[5:11].strip()
-            self.field_parameters[window_start_date]=[row['Crop Code'],window_end_date,row['Crop name'],float(row['N removal per unit yield (lb/yield)'])]
+            self.field_parameter[window_start_date]=[row['Crop Code'],window_end_date,row['Crop name'],float(row['N removal per unit yield (lb/yield)'])]
             self.crop_mapper[row['Crop Code']]=window_start_date
         # print("")
-        # print(self.field_parameters,self.crop_mapper)
+        # print(self.field_parameter,self.crop_mapper)
         workbook = pd.read_excel('Input_Template_Field.xlsx')
         number_of_rows=workbook.iloc[0][1]
         self.field_input={}
@@ -106,9 +106,9 @@ class RISF:
 
            #Taking cumulative of nitrogen required incase there are more than one occurence of same field
             if self.crop_mapper[workbook.iloc[i][2]] not in self.field_input:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameters[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[1]
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[1]
             else:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]][-1]+=1
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]][2]+=float(workbook.iloc[i][1])
 
         print("printing final field")
         print(self.field_input)
@@ -119,6 +119,7 @@ class RISF:
             "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
             "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
         }"""
+
 
     def generateRandomVolume(self,acre):
         """
@@ -279,6 +280,7 @@ class RISF:
         irrigate_vol=0
         for values in fields_volumes:
                 if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
+                     print("continuuu ..", values[1],self.minVolPerField*irrigate_fields[values[1]][values[2]][2],irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
                      continue
                 if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion>self.maxVolPerField*irrigate_fields[values[1]][values[2]][2]:
                       volume_alloted =  self.generateRandomVolume(irrigate_fields[values[1]][values[2]][2])
@@ -314,6 +316,8 @@ class RISF:
         daily_evap=[]
         daily_rainfall=[]
         day=0
+
+
         for i in range(len(evaporation_rate)):
 
             lagoon_surface_area = self.calculateLagoonSurfaceArea(depth)
@@ -333,16 +337,16 @@ class RISF:
                    "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
                    "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
                }"""
-
-            if cur_date in self.field_parameters:
-                end_date = self.field_parameters[cur_date][1]
-                irrigate_fields[end_date].append([float(self.field_parameters[cur_date][2])*float(self.field_parameters[cur_date][4])*float(self.field_parameters[cur_date][5]),
-                                                  float(self.field_parameters[cur_date][2])*float(self.field_parameters[cur_date][4])*float(self.field_parameters[cur_date][5]),self.field_parameters[cur_date][2]])
+            # print(self.field_input,"hello")
+            if cur_date in self.field_input:
+                end_date = self.field_input[cur_date][1]
+                irrigate_fields[end_date].append([float(self.field_input[cur_date][2])*float(self.field_input[cur_date][4])*float(self.field_input[cur_date][5]),
+                                                  float(self.field_input[cur_date][2])*float(self.field_input[cur_date][4])*float(self.field_input[cur_date][5]),self.field_input[cur_date][2]])
                 # and ((depth < self.d_irrigate) or (rainfall_vol==0 and depth<self.d_stop)):   #condition to check if it rained or not
 
 
             irrigation_volume=0
-            print("irirtage fields ---- ", irrigate_fields)
+            # print("irirtage fields ---- ", irrigate_fields)
             if i%7==0 and depth<self.d_stop and rainfall_vol==0:  #irrigation decision per week
                 irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume)
 
@@ -379,15 +383,17 @@ class RISF:
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
-        df1.to_excel(file_name,    sheet_name='Sheet_name_1')
+
+        df1.to_excel("Report-"+file_name,    sheet_name='Report')
+        df2 = df1.copy()
+        df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}'.format(year=x.year, month=x.month))
+
+        df2 = df2.groupby('YearMonth').sum()
+        df2 = df2[["Lagoon Volumes","Delta change","rainfall","evaporation"]]
+        print(df2)
+        df2.to_excel("Aggregated-Report-"+file_name,    sheet_name='aggregation')
 
         return new_depth, overflow_flag
-
-
-
-
-
-
 
 
 
