@@ -1,5 +1,6 @@
 import pandas as pd
 import math
+import os
 import random
 from datetime import datetime
 from collections import defaultdict
@@ -398,6 +399,9 @@ class RISF:
 
         file_name =  str(datetime.now())+".xlsx"
         directory_output = './Output_Files/'
+        if not os.path.exists(directory_output):
+            os.makedirs(directory_output)
+            
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         df1= pd.DataFrame(cols).transpose()
         df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
