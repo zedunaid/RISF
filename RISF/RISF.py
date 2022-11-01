@@ -104,17 +104,17 @@ class RISF:
         # print("")
         # print(self.field_parameter,self.crop_mapper)
         workbook = pd.read_excel('./Input_Files/Input_Template_Field.xlsx')
-        number_of_rows=workbook.iloc[0][1]
+        self.number_of_fields=workbook.iloc[0][1]
         self.field_input={}
 
-        for i in range(3,3+number_of_rows):
+        for i in range(3,3+self.number_of_fields):
            # print(workbook.iloc[i][2])
 
            #Taking cumulative of nitrogen required incase there are more than one occurence of same field
             if self.crop_mapper[workbook.iloc[i][2]] not in self.field_input:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[1]
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[workbook.iloc[i][0]]]
             else:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]][2]+=float(workbook.iloc[i][1])
+                self.field_input[self.crop_mapper[workbook.iloc[i][2]]].append(self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[workbook.iloc[i][0]])
 
         print("printing final field")
         print(self.field_input)
@@ -216,7 +216,6 @@ class RISF:
         r = 287.5
         return [p / (r * (tem + 273)) for tem in average_air_tem_c]
 
-
     def calculateEvaporationRate(self, delta_air_tem_c, e_as, e_a, air_density, net_radiation,
                                  avg_wind_speed_at_two_meters):
         """
@@ -251,7 +250,6 @@ class RISF:
 
         return evaporation
 
-
     def calculateLagoonSurfaceArea(self, depth):
         """
         Calculate surface area for lagoon
@@ -282,7 +280,7 @@ class RISF:
         return self.Lagoon_d_Coeffs[0] + self.Lagoon_d_Coeffs[1] * volume + self.Lagoon_d_Coeffs[2] *volume*volume + self.Lagoon_d_Coeffs[3] *volume*volume*volume + self.Lagoon_d_Coeffs[4] *volume*volume*volume*volume
 
 
-    def isIrrigationReq(self,irrigate_fields,lagoon_volume):
+    def isIrrigationReq(self,irrigate_fields,lagoon_volume,vol_per_field):
         fields_volumes=[]
 
         for key,val in irrigate_fields.items():
@@ -307,6 +305,8 @@ class RISF:
 
                 else:
                     volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
+
+                vol_per_field[irrigate_fields[values[1]][values[2]][3]]+=volume_alloted
 
                 # print("lg",lagoon_volume,irrigate_fields[values[1]][values[2]][0],volume_alloted/lbsTogalConversion)
                 lagoon_volume-=volume_alloted
@@ -334,7 +334,9 @@ class RISF:
         daily_evap=[]
         daily_rainfall=[]
         day=0
-
+        volume_allocation_per_field={}
+        for i in range(1,self.number_of_fields+1):
+            volume_allocation_per_field[i]=[]
 
         for i in range(len(evaporation_rate)):
 
@@ -357,25 +359,39 @@ class RISF:
                }"""
             # print(self.field_input,"hello")
             if cur_date in self.field_input:
-                end_date = self.field_input[cur_date][1]
-                irrigate_fields[end_date].append([float(self.field_input[cur_date][2])*float(self.field_input[cur_date][4])*float(self.field_input[cur_date][5]),
-                                                  float(self.field_input[cur_date][2])*float(self.field_input[cur_date][4])*float(self.field_input[cur_date][5]),self.field_input[cur_date][2]])
+                for window in self.field_input[cur_date]:
+                    end_date = window[1]
+                    if end_date not in irrigate_fields:
+                        irrigate_fields[end_date] = [[float(window[2])*float(window[4])*float(window[5]),
+                                                          float(window[2])*float(window[4])*float(window[5]),window[2],window[6]]]
+                    else:
+                        irrigate_fields[end_date].append([float(window[2])*float(window[4])*float(window[5]),
+                                                  float(window[2])*float(window[4])*float(window[5]),window[2],window[6]])
+
+
                 # and ((depth < self.d_irrigate) or (rainfall_vol==0 and depth<self.d_stop)):   #condition to check if it rained or not
 
 
             irrigation_volume=0
-            # print("irirtage fields ---- ", irrigate_fields)
+            vol_per_field=[0]*(self.number_of_fields+1)
             if i%7==0 and depth<self.d_stop and rainfall_vol==0:  #irrigation decision per week
-                irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume)
+                irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume,vol_per_field)
+
+
+
+            #Get volume allocated for each field
+            for i in range(1,self.number_of_fields+1):
+                volume_allocation_per_field[i].append(vol_per_field[i])
 
             invent_irri_vol.append(irrigation_volume)
             incrementDelta= rainfall_vol + animal_waste - evaporation_vol - irrigation_volume
+
             #toDo wastewater
             delta_change.append(incrementDelta)
             lagoon_volume = lagoon_volume + incrementDelta
 
             #toDo allocation of volume to each field during the weekly cycle
-            #Todo another file for aggregation per year
+
 
             # Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
@@ -399,19 +415,34 @@ class RISF:
 
         file_name =  str(datetime.now())+".xlsx"
         directory_output = './Output_Files/'
+        print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
+
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
-            
-        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
-        df1= pd.DataFrame(cols).transpose()
-        df1.columns=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
 
+        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
+        for i in range(1, self.number_of_fields+1):
+            tem=volume_allocation_per_field[i]
+            cols.append(tem)
+
+        df1= pd.DataFrame(cols).transpose()
+
+        col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
+        for i in range(1, self.number_of_fields+1):
+            col_labels.append("Field "+str(i))
+
+        df1.columns=col_labels
         df1.to_excel(directory_output+"Report-"+file_name, sheet_name='Report')
         df2 = df1.copy()
-        df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}'.format(year=x.year, month=x.month))
 
-        df2 = df2.groupby('YearMonth').sum()
-        df2 = df2[["Delta change","rainfall","evaporation"]]
+        df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}-{month}'.format(year=x.year, month=x.month))
+
+        df2 = df2.groupby('YearMonth',sort=False).sum()
+        col_labels=["Delta change","rainfall","evaporation"]
+        for i in range(1, self.number_of_fields+1):
+            col_labels.append("Field "+str(i))
+
+        df2 = df2[col_labels]
         print(df2)
         df2.to_excel(directory_output+"Aggregated-Report-"+file_name, sheet_name='aggregation')
 
@@ -421,11 +452,11 @@ class RISF:
 
     # Main function
     def readInputFile(self):
-        # """
-        # This method gets the input file, invokes required methods to get the final depth for each day and decides about the appropriate flags
-        # :param self:
-        # :return:
-        # """
+            """
+            This method gets the input file, invokes required methods to get the final depth for each day and decides about the appropriate flags
+            :param self:
+            :return:
+            """
             print("Starting ...")
             workbook = pd.read_excel('wd_CLIN.xlsx', skiprows=12)
         # try:
