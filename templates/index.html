@@ -2,7 +2,12 @@
 <html>
     <style>
         h2 {text-align: center;}
-       
+        div {
+        float: left;
+        height: 470px;
+        width: 23%;
+        padding: 0 10px;
+      }
         </style>
 <body>
 
@@ -10,13 +15,19 @@
 
 <form method="POST" action="/submit" enctype="multipart/form-data">
   <!-- <label for="farmFile">Farm File:</label><br> -->
-  <p>Farm File</p>
-  <input type="file" id="farmFile" name="farmFile"> <br>
-  
-  <!-- <label for="fieldFile">Field File:</label><br> -->
-  <br><p>Field File</p><br>
-  <input type="file" id="fieldFile" name="fieldFile"><br><br>
 
+  <div>
+    <h4>Farm Input File</h4>
+    <input type="file" id="farmFile" name="farmFile" required> <br>  
+  </div>
+ 
+  <div>
+    <br><h4>Field Input File</h4>
+    <input type="file" id="fieldFile" name="fieldFile" required><br><br>
+  </div>
+  <!-- <label for="fieldFile">Field File:</label><br> -->
+  
+<br>
   <input type="submit" value="Submit">
 </form> 
 
