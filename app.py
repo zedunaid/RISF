@@ -1,10 +1,11 @@
 from crypt import methods
+from fileinput import filename
 # from urllib import request
 from flask import Flask , render_template, request , send_file
 from RISF.RISF import *
 
 app = Flask(__name__)
-
+var={}
 def getSimulationReport(farmFile,fieldFile):
     obj = RISF()
     #Get Farm Details from Excel
@@ -17,15 +18,22 @@ def getSimulationReport(farmFile,fieldFile):
     obj.readInputFile()
     return obj.file_name
 
+@app.route('/download',methods=['GET'])
+def download():
+    
+    return send_file('RISF/Output_Files/Report-'+var['FileName'],as_attachment=True, download_name="Simulation-Reports.xlsx")
+
+
+
 @app.route('/submit',methods=['POST'])
 def submitFile():
    print("inside submit")
    farmFile = request.files['farmFile']
    fieldFile= request.files['fieldFile']
    print(farmFile,fieldFile)
-   file_name = getSimulationReport(farmFile,fieldFile)
+   var['FileName'] = getSimulationReport(farmFile,fieldFile)
 
-   return send_file('./RISF/Output_Files/Report-'+file_name,as_attachment=True, download_name="farm_File.xlsx")
+   return render_template('download.html')
 
 
 @app.route('/')

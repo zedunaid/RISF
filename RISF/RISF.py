@@ -432,7 +432,7 @@ class RISF:
             col_labels.append("Field "+str(i))
 
         df1.columns=col_labels
-        df1.to_excel(directory_output+"Report-"+self.file_name, sheet_name='Report')
+       # df1.to_excel(directory_output+"Report-"+self.file_name, sheet_name='Report')
         df2 = df1.copy()
 
         df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}-{month}'.format(year=x.year, month=x.month))
@@ -444,8 +444,13 @@ class RISF:
 
         df2 = df2[col_labels]
         print(df2)
-        df2.to_excel(directory_output+"Aggregated-Report-"+self.file_name, sheet_name='aggregation')
-
+        #df2.to_excel(directory_output+"Aggregated-Report-"+self.file_name, sheet_name='aggregation')
+        with pd.ExcelWriter(directory_output+"Report-"+self.file_name) as writer:
+   
+    # use to_excel function and specify the sheet_name and index
+    # to store the dataframe in specified sheet
+            df1.to_excel(writer, sheet_name="Report")
+            df2.to_excel(writer, sheet_name="Aggregation")
         return new_depth, overflow_flag
 
 
