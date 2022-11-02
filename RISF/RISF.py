@@ -66,10 +66,10 @@ class RISF:
 
 
 
-    def getFarmDetails(self):
+    def getFarmDetails(self,farmFile):
         try:
 
-            workbook = pd.read_excel('./Input_Files/Input_Template_Farm_new.xlsx', skiprows=1,nrows=11,usecols=range(1,2))
+            workbook = pd.read_excel(farmFile, skiprows=1,nrows=11,usecols=range(1,2))
             data=(workbook['Value'].values.tolist())
 
             #Assigning value to the variables from excel
@@ -89,8 +89,8 @@ class RISF:
             print("Error while fetching farm data,please check the input file")
 
 
-    def getFieldDetails(self):
-        workbook = pd.read_excel('./Input_Files/Input_Template_Field.xlsx', skiprows=1,nrows=5,usecols=range(6,12))
+    def getFieldDetails(self,fieldFile):
+        workbook = pd.read_excel(fieldFile, skiprows=1,nrows=5,usecols=range(6,12))
 
         # print(workbook)
         self.field_parameter={}
@@ -413,7 +413,7 @@ class RISF:
 
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
-        file_name =  str(datetime.now())+".xlsx"
+        self.file_name =  str(datetime.now())+".xlsx"
         directory_output = './Output_Files/'
         print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
 
@@ -432,7 +432,7 @@ class RISF:
             col_labels.append("Field "+str(i))
 
         df1.columns=col_labels
-        df1.to_excel(directory_output+"Report-"+file_name, sheet_name='Report')
+        df1.to_excel(directory_output+"Report-"+self.file_name, sheet_name='Report')
         df2 = df1.copy()
 
         df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}-{month}'.format(year=x.year, month=x.month))
@@ -444,7 +444,7 @@ class RISF:
 
         df2 = df2[col_labels]
         print(df2)
-        df2.to_excel(directory_output+"Aggregated-Report-"+file_name, sheet_name='aggregation')
+        df2.to_excel(directory_output+"Aggregated-Report-"+self.file_name, sheet_name='aggregation')
 
         return new_depth, overflow_flag
 
