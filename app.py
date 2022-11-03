@@ -20,7 +20,7 @@ def getSimulationReport(farmFile,fieldFile,climateFile):
 
 @app.route('/download',methods=['GET'])
 def download():
-    
+    print(var['FileName'],"pring")    
     return send_file(var['FileName'],as_attachment=True, download_name="Simulation-Reports.xlsx")
 
 
