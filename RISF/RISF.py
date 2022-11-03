@@ -414,9 +414,9 @@ class RISF:
         print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
         self.file_name =  str(datetime.now())+".xlsx"
-        directory_output = './Output_Files/'
+        directory_output = os.getcwd()+'/Output_Files/'
         print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
-
+        print("current dir",os.getcwd(),directory_output)
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
 
