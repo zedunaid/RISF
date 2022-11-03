@@ -103,7 +103,7 @@ class RISF:
             self.crop_mapper[row['Crop Code']]=window_start_date
         # print("")
         # print(self.field_parameter,self.crop_mapper)
-        workbook = pd.read_excel('./Input_Files/Input_Template_Field.xlsx')
+        workbook = pd.read_excel(fieldFile)
         self.number_of_fields=workbook.iloc[0][1]
         self.field_input={}
 
