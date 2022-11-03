@@ -6,7 +6,7 @@ from RISF.RISF import *
 
 app = Flask(__name__)
 var={}
-def getSimulationReport(farmFile,fieldFile):
+def getSimulationReport(farmFile,fieldFile,climateFile):
     obj = RISF()
     #Get Farm Details from Excel
     obj.getFarmDetails(farmFile)
@@ -15,7 +15,7 @@ def getSimulationReport(farmFile,fieldFile):
     obj.getFieldDetails(fieldFile)
 
     #Get New Depths and Irrigate fields
-    obj.readInputFile()
+    obj.readInputFile(climateFile)
     return obj.file_name
 
 @app.route('/download',methods=['GET'])
@@ -30,8 +30,9 @@ def submitFile():
    print("inside submit")
    farmFile = request.files['farmFile']
    fieldFile= request.files['fieldFile']
+   climateFile= request.files['climateFile']
    print(farmFile,fieldFile)
-   var['FileName'] = getSimulationReport(farmFile,fieldFile)
+   var['FileName'] = getSimulationReport(farmFile,fieldFile,climateFile)
 
    return render_template('download.html')
 

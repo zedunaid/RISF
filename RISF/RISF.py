@@ -456,14 +456,14 @@ class RISF:
 
 
     # Main function
-    def readInputFile(self):
+    def readInputFile(self,climateFile):
             """
             This method gets the input file, invokes required methods to get the final depth for each day and decides about the appropriate flags
             :param self:
             :return:
             """
             print("Starting ...")
-            workbook = pd.read_excel('wd_CLIN.xlsx', skiprows=12)
+            workbook = pd.read_excel(climateFile, skiprows=12)
         # try:
             workbook.fillna(0)
             average_air_tem_c = []
