@@ -451,6 +451,8 @@ class RISF:
     # to store the dataframe in specified sheet
             df1.to_excel(writer, sheet_name="Report")
             df2.to_excel(writer, sheet_name="Aggregation")
+
+        self.file_name = directory_output+"Report-"+self.file_name
         return new_depth, overflow_flag
 
 

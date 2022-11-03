@@ -21,7 +21,7 @@ def getSimulationReport(farmFile,fieldFile,climateFile):
 @app.route('/download',methods=['GET'])
 def download():
     
-    return send_file('RISF/Output_Files/Report-'+var['FileName'],as_attachment=True, download_name="Simulation-Reports.xlsx")
+    return send_file(var['FileName'],as_attachment=True, download_name="Simulation-Reports.xlsx")
 
 
 
