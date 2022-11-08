@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 import os
+import glob
 import random
 from datetime import datetime
 from collections import defaultdict
@@ -419,6 +420,10 @@ class RISF:
        # print("current dir",os.getcwd(),directory_output)
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
+        else:
+            files = glob.glob(directory_output+"*")
+            for f in files:
+                os.remove(f)
 
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
         for i in range(1, self.number_of_fields+1):
@@ -443,7 +448,7 @@ class RISF:
             col_labels.append("Field "+str(i))
 
         df2 = df2[col_labels]
-        print(df2)
+#        print(df2)
         #df2.to_excel(directory_output+"Aggregated-Report-"+self.file_name, sheet_name='aggregation')
         with pd.ExcelWriter(directory_output+"Report-"+self.file_name) as writer:
    

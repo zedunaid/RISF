@@ -28,13 +28,13 @@ def download():
 
 @app.route('/submit',methods=['POST'])
 def submitFile():
-   print("inside submit")
+
    farmFile = request.files['farmFile']
    fieldFile= request.files['fieldFile']
    climateFile= request.files['climateFile']
-   print(farmFile,fieldFile)
+  # print(farmFile,fieldFile)
    var['FileName'] = getSimulationReport(farmFile,fieldFile,climateFile)
-   time.sleep(5)
+   time.sleep(2)
    print(var['FileName'])
    return render_template('download.html')
 
