@@ -33,7 +33,8 @@ def submitFile():
    climateFile= request.files['climateFile']
    print(farmFile,fieldFile)
    var['FileName'] = getSimulationReport(farmFile,fieldFile,climateFile)
-
+   sleep(5)
+   print(var['FileName']
    return render_template('download.html')
 
 
