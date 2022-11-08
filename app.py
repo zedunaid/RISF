@@ -33,10 +33,11 @@ def submitFile():
    fieldFile= request.files['fieldFile']
    climateFile= request.files['climateFile']
   # print(farmFile,fieldFile)
-   var['FileName'] = getSimulationReport(farmFile,fieldFile,climateFile)
-   time.sleep(2)
-   print(var['FileName'])
-   return render_template('download.html')
+   FileName = getSimulationReport(farmFile,fieldFile,climateFile)
+   return send_file(FileName,as_attachment=True, download_name="Simulation-Reports.xlsx")
+ # time.sleep(2)
+  # print(var['FileName'])
+   #return render_template('download.html')
 
 
 @app.route('/')
