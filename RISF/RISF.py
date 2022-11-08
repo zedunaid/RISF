@@ -84,7 +84,7 @@ class RISF:
             self.d_stop = float(data[8])
             self.d_freeboard=float(data[9])
             self.Avg_N_lbkgal=float(data[10])
-            print(data)
+           # print(data)
         except:
             print("Error while fetching farm data,please check the input file")
 
@@ -116,8 +116,8 @@ class RISF:
             else:
                 self.field_input[self.crop_mapper[workbook.iloc[i][2]]].append(self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[workbook.iloc[i][0]])
 
-        print("printing final field")
-        print(self.field_input)
+        #print("printing final field")
+        #print(self.field_input)
 
         """
            self.field_parameters = {
@@ -408,15 +408,15 @@ class RISF:
             new_depth.append(depth)
             invent_lagoon_vol.append(lagoon_volume)
 
-            print(cur_date,irrigate_fields)
+         #   print(cur_date,irrigate_fields)
             irrigate_fields.pop(cur_date,None)
 
-        print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
+        #print(len(dates),len(invent_irri_vol),len(invent_lagoon_vol),len(new_depth))
 
         self.file_name =  str(datetime.now())+".xlsx"
         directory_output = os.getcwd()+'/Output_Files/'
-        print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
-        print("current dir",os.getcwd(),directory_output)
+       # print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
+       # print("current dir",os.getcwd(),directory_output)
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
 
@@ -498,30 +498,30 @@ class RISF:
             evaporation_rate = self.calculateEvaporationRate(delta_air_tem_c, e_as, e_a, air_density, net_radiation,
                                                         avg_wind_speed_at_two_meters)
 
-            print("\nPrinting average air temperature in Celcius")
-            print(average_air_tem_c)
-            print("\nPrint e_a")
-            print(e_a)
-            print("\nPrinting e_as")
-            print(e_as)
-            print("\nPrinting  net solar radiation")
-            print(net_radiation)
-            print("\nPrinting average wind velocity")
-            print(avg_wind_speed_at_two_meters)
-            print("\nPrinting air density")
-            print(air_density)
-            print("\nPrinting delta air temperature in celcius")
-            print(delta_air_tem_c)
-            print("\nPrinting evaporation")
-            print(evaporation_rate)
+        #    print("\nPrinting average air temperature in Celcius")
+        #   print(average_air_tem_c)
+        #    print("\nPrint e_a")
+        #    print(e_a)
+        #    print("\nPrinting e_as")
+        #    print(e_as)
+        #    print("\nPrinting  net solar radiation")
+        #    print(net_radiation)
+        #    print("\nPrinting average wind velocity")
+        #    print(avg_wind_speed_at_two_meters)
+        #    print("\nPrinting air density")
+        #    print(air_density)
+        #    print("\nPrinting delta air temperature in celcius")
+        #    print(delta_air_tem_c)
+        #    print("\nPrinting evaporation")
+        #    print(evaporation_rate)
 
             new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate,dates)
 
-            print("\nPrinting new Depth")
-            print(new_depth)
-            print(dates)
-            print("\nPrinting overflow flags")
-            print(overflow_flag)
+         #   print("\nPrinting new Depth")
+         #   print(new_depth)
+         #   print(dates)
+         #   print("\nPrinting overflow flags")
+         #   print(overflow_flag)
         # except:
         #     print("Error occurred while calculating evaporation")
 
