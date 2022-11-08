@@ -1,4 +1,5 @@
 from crypt import methods
+import time
 from fileinput import filename
 # from urllib import request
 from flask import Flask , render_template, request , send_file
@@ -20,7 +21,7 @@ def getSimulationReport(farmFile,fieldFile,climateFile):
 
 @app.route('/download',methods=['GET'])
 def download():
-    print(var['FileName'],"pring")    
+    #print(var['FileName'],"pring")    
     return send_file(var['FileName'],as_attachment=True, download_name="Simulation-Reports.xlsx")
 
 
@@ -33,8 +34,8 @@ def submitFile():
    climateFile= request.files['climateFile']
    print(farmFile,fieldFile)
    var['FileName'] = getSimulationReport(farmFile,fieldFile,climateFile)
-   sleep(5)
-   print(var['FileName']
+   time.sleep(5)
+   print(var['FileName'])
    return render_template('download.html')
 
 
