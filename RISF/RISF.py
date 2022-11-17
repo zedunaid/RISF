@@ -25,13 +25,13 @@ class RISF:
         self.maxVolPerField = 27000  #(gallon/acre)
 
         self.cols = {'date': 'Date',
-                     'max_air_tem_c': 'Maximum Air Temperature (C)',
-                     'min_air_tem_c': 'Minimum Air Temperature (C)',
+                     'max_air_tem_f': 'Maximum Air Temperature (F)',
+                     'min_air_tem_f': 'Minimum Air Temperature (F)',
                      'max_rel_humidity_per': 'Maximum Relative Humidity (%)',
                      'min_rel_humidity_per': 'Minimum Relative Humidity (%)',
                      'total_per': 'Total Precipitation (in)',
                      'avg_solar_rad': 'Average Solar Radiation (W/m2)',
-                     'avg_wind_speed_mps': 'Average Wind Speed (mps)',
+                     'avg_wind_speed_ms': 'Average Wind Speed (ms)',
                      }
         self.constants_windVelocity = [4.87, 67.8, 5.42]  # make constants
         self.constants_z2 = 10.0  # elevation constants
@@ -334,6 +334,7 @@ class RISF:
         delta_change=[]
         daily_evap=[]
         daily_rainfall=[]
+        exceedance_lagoon_volume=[]
         day=0
         volume_allocation_per_field={}
         for i in range(1,self.number_of_fields+1):
@@ -351,13 +352,6 @@ class RISF:
             daily_evap.append(evaporation_vol)
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
-            """
-                  self.field_parameters = {
-                   "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
-                   "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
-                   "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
-                   "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
-               }"""
             # print(self.field_input,"hello")
             if cur_date in self.field_input:
                 for window in self.field_input[cur_date]:
@@ -369,8 +363,6 @@ class RISF:
                         irrigate_fields[end_date].append([float(window[2])*float(window[4])*float(window[5]),
                                                   float(window[2])*float(window[4])*float(window[5]),window[2],window[6]])
 
-
-                # and ((depth < self.d_irrigate) or (rainfall_vol==0 and depth<self.d_stop)):   #condition to check if it rained or not
 
 
             irrigation_volume=0
@@ -406,6 +398,12 @@ class RISF:
             else:
                 overflow_flag.append("N/A")
 
+            if depth<0:
+                exceedance_lagoon_volume.append(self.calculateLagoonVolume(abs(depth)))
+                depth=0
+            else:
+                exceedance_lagoon_volume.append(0)
+
             new_depth.append(depth)
             invent_lagoon_vol.append(lagoon_volume)
 
@@ -425,14 +423,14 @@ class RISF:
             for f in files:
                 os.remove(f)
 
-        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap]
+        cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap,exceedance_lagoon_volume]
         for i in range(1, self.number_of_fields+1):
             tem=volume_allocation_per_field[i]
             cols.append(tem)
 
         df1= pd.DataFrame(cols).transpose()
 
-        col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation"]
+        col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
         for i in range(1, self.number_of_fields+1):
             col_labels.append("Field "+str(i))
 
@@ -443,7 +441,7 @@ class RISF:
         df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}-{month}'.format(year=x.year, month=x.month))
 
         df2 = df2.groupby('YearMonth',sort=False).sum()
-        col_labels=["Delta change","rainfall","evaporation"]
+        col_labels=["Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
         for i in range(1, self.number_of_fields+1):
             col_labels.append("Field "+str(i))
 
@@ -473,6 +471,7 @@ class RISF:
             workbook = pd.read_excel(climateFile, skiprows=12)
         # try:
             workbook.fillna(0)
+            workbook.replace(to_replace='QCF',value=0,inplace=True)
             average_air_tem_c = []
 
             # ToDo: find good variable name for this list
@@ -481,20 +480,20 @@ class RISF:
             e_as = []
 
             net_radiation = self.getNetRadiation(workbook[self.cols['avg_solar_rad']])
-            avg_wind_speed_at_two_meters = self.getWindSpeed(workbook[self.cols['avg_wind_speed_mps']])
+            avg_wind_speed_at_two_meters = self.getWindSpeed(workbook[self.cols['avg_wind_speed_ms']])
             rainfall_rate = workbook[self.cols['total_per']]
             dates=[]
             for index, row in workbook.iterrows():
 
-                if row[self.cols['min_air_tem_c']] == '#VALUE!':
+                if row[self.cols['min_air_tem_f']] == '#VALUE!':
                     continue
 
-                e_a.append(self.ea(float(row[self.cols['min_air_tem_c']]), float(row[self.cols['max_air_tem_c']]),
+                e_a.append(self.ea( 0.5556*(float(row[self.cols['min_air_tem_f']])-32), 0.5556*(float(row[self.cols['max_air_tem_f']])-32),
                                    float(row[self.cols['max_rel_humidity_per']]),
                                    float(row[self.cols['min_rel_humidity_per']])))
-                e_as.append(self.es(row[self.cols['min_air_tem_c']], row[self.cols['max_air_tem_c']]))
-                average_air_tem_c.append((row[self.cols['max_air_tem_c']] + row[self.cols['min_air_tem_c']]) / 2)
-                avg_wind_speed_at_two_meters.append(row[self.cols['avg_wind_speed_mps']])
+                e_as.append(self.es(0.5556*(row[self.cols['min_air_tem_f']]-32), 0.5556*(row[self.cols['max_air_tem_f']]-32)))
+                average_air_tem_c.append((float(0.5556*(row[self.cols['max_air_tem_f']] -32))+ float(0.5556*(row[self.cols['min_air_tem_f']]-32))) / 2)
+                avg_wind_speed_at_two_meters.append(row[self.cols['avg_wind_speed_ms']])
                 dates.append(row[self.cols['date']])
             air_density = self.getAirDensity(average_air_tem_c)
             delta_air_tem_c = self.getDelta(average_air_tem_c)

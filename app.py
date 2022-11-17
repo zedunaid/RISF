@@ -33,8 +33,9 @@ def submitFile():
    fieldFile= request.files['fieldFile']
    climateFile= request.files['climateFile']
   # print(farmFile,fieldFile)
+   result_file = climateFile.filename.split('.')[0]+"_"+farmFile.filename.split('.')[0]+"_"+fieldFile.filename.split('.')[0]+".xlsx"
    FileName = getSimulationReport(farmFile,fieldFile,climateFile)
-   return send_file(FileName,as_attachment=True, download_name="Simulation-Reports.xlsx")
+   return send_file(FileName,as_attachment=True, download_name=result_file)
  # time.sleep(2)
   # print(var['FileName'])
    #return render_template('download.html')
