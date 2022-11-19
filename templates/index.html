@@ -1,45 +1,96 @@
 <!DOCTYPE html>
 <html>
-    <style>
-        h2 {text-align: center;}
-        div {
-        float: left;
-        height: 470px;
-        width: 23%;
-        padding: 0 10px;
-      }
-        </style>
-<body>
+    <head>
+        <title>RISF Bio Department</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='barn.ico') }}">
+        <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.8.0/dist/alpine.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+        <link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"></link>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script src="https://cdn.ncsu.edu/brand-assets/utility-bar/ub.php?googleCustomSearchCode=RISF&placeholder=RISF&maxWidth=1100&color=gray&showBrick=1"></script>
+
+    </head>
+<body >
+
+<div id="ncstate-utility-bar"></div>
 
 <h2 >Impact of Future Climate Events on NC Animal Agriculture Systems</h2>
 
-<form method="POST" action="/submit" enctype="multipart/form-data">
-  <!-- <label for="farmFile">Farm File:</label><br> -->
+<form method="POST" action="/submit" enctype="multipart/form-data" >
+  <div class="container" >
+      <div class="form-group" x-data="{ fileName: '' }">
+      <div class="input-group shadow">
+        <span class="input-group-text px-3 text-muted"><i class="fas fa-image fa-lg"></i></span>
+          <input type="file"  required x-ref="file" @change="fileName = $refs.file.files[0].name" name="climateFile" class="d-none" >
+        <input type="text" class="form-control form-control-lg"  x-model="fileName==''?'Upload Climate File':fileName" readonly  >
+        <button class="browse btn btn-primary px-4" type="button" x-on:click.prevent="$refs.file.click()" ><i class="fas fa-image" ></i> Browse</button>
+      </div>
+      <br>
 
-  <div>
-    <br><h4>Climate Input File</h4>
-    <input type="file" id="climateFile" name="climateFile" required><br><br>
+    </div>
+    <div class="form-group" x-data="{ fileName: '' }">
+      <div class="input-group shadow">
+        <span class="input-group-text px-3 text-muted"><i class="fas fa-image fa-lg"></i></span>
+        <input type="file"  id="farmFile"   x-ref="file" @change="fileName = $refs.file.files[0].name" name="farmFile" class="d-none" required>
+        <input type="text" class="form-control form-control-lg"  x-model="fileName==''?'Upload Farm File':fileName" readonly>
+        <button class="browse btn btn-primary px-4" type="button" x-on:click.prevent="$refs.file.click()"  ><i class="fas fa-image"></i> Browse</button>
+      </div>
+      <br>
+
+    </div>
+    <div class="form-group" x-data="{ fileName: '' }">
+      <div class="input-group shadow">
+        <span class="input-group-text px-3 text-muted"><i class="fas fa-image fa-lg"></i></span>
+          <input type="file"  id="fieldFile"  required x-ref="file" @change="fileName = $refs.file.files[0].name" name="fieldFile" class="d-none">
+        <input type="text" class="form-control form-control-lg" x-model="fileName==''?'Upload Field File':fileName" readonly>
+        <button class="browse btn btn-primary px-4" type="button" x-on:click.prevent="$refs.file.click()"><i class="fas fa-image"></i> Browse</button>
+      </div>
+    </div>
+    <br>
+      <button type="submit" class="form-control form-control-lg"  x-model="fileName">Download</button>
   </div>
-
-  <div>
-    <h4>Farm Input File</h4>
-    <input type="file" id="farmFile" name="farmFile" required> <br>
-  </div>
-
-  <div>
-    <br><h4>Field Input File</h4>
-    <input type="file" id="fieldFile" name="fieldFile" required><br><br>
-  </div>
-
-
-  <!-- <label for="fieldFile">Field File:</label><br> -->
-
-<br>
-  <input type="submit" value="Download">
 </form>
 
-<p>If you click the "Download" button, the submitted input files will be used for simulation. Please, download the response File.</p>
-
+<div class="sub_div">
+    <div class="footer-style">
+        <div class="footer-ncsu">
+            <div>
+                <div class="col-xs-12">
+                    <a href="https://www.ncsu.edu/"><img style="width: 4vw" src="https://www.bae.ncsu.edu/wp-content/themes/riddick/dist/images/ncstate-logos/ncstate-type-2x1-wht.png"></a>
+                </div>
+            </div>
+            <div>
+                <div class="col-xs-12">
+                    <h3 class="text-light">Department of Biological and Agricultural Engineering</h3>
+                </div>
+            </div>
+            <div>
+                <div class="col-xs-12">
+                    <p class="text-light">North Carolina State University |
+                        3100 Faucette Drive | Raleigh, NC | 27695-7625                            </p>
+                </div>
+            </div>
+            <div>
+                <div class="col-xs-12">
+                    <p class="small text-light">
+                        © 2022 <a class="text-light" href="http://www.ncsu.edu" target="_blank"> NC State University</a>&nbsp;|&nbsp;
+                        <a class="text-light" href="https://www.bae.ncsu.edu/wp-admin/">Log in</a>&nbsp;|&nbsp;<a class="text-light" href="http://accessibility.ncsu.edu/" target="_blank">Accessibility</a>&nbsp;|&nbsp;
+                        <a class="text-light" href="http://www.ncsu.edu/privacy/" target="_blank">Privacy</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="footer-ncsu">
+            <img style="width: 11vw" src="https://www.bae.ncsu.edu/wp-content/uploads/2017/02/bae_new-drop-1800.png">
+        </div>
+    </div>
+</div>
 </body>
 </html>
 
