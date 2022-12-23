@@ -385,7 +385,7 @@ class RISF:
 
             #toDo allocation of volume to each field during the weekly cycle
 
-
+            prev_day_depth = depth
             # Get new depth from the updated lagoon volume
             depth = self.getDepthFromVol(lagoon_volume)
 
@@ -399,8 +399,11 @@ class RISF:
                 overflow_flag.append("N/A")
 
             if depth<0:
-                exceedance_lagoon_volume.append(self.calculateLagoonVolume(abs(depth)))
-                depth=0
+                exceedance_lagoon_volume.append(incrementDelta)
+                #The depth remains as previous day as we move the extra volume to exceedance
+                depth=prev_day_depth
+                #Removing the added increment volume from lagoon
+                lagoon_volume-=incrementDelta
             else:
                 exceedance_lagoon_volume.append(0)
 
