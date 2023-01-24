@@ -16,7 +16,7 @@ class RISF:
         """
            The constructor initializes all the required constants that can be used for simulation
         """
-        self.d_irrigate=30
+        self.d_irrigate= 30 # Modeling conservative operator
 
         self.mmToInchConversion = 0.0393701
         self.inchToFeetConversion=0.08333
@@ -81,10 +81,11 @@ class RISF:
             self.Lagoon_A_Coeffs=  [float(a.strip()) for a in data[4].split(',')]
             self.Lagoon_d_Coeffs=  [float(d.strip()) for d in data[5].split(',')]
             self.d_initial= float(data[6])
-            self.d_start=float(data[7])    #ToDo When to use this
+            self.d_start=float(data[7])    
             self.d_stop = float(data[8])
             self.d_freeboard=float(data[9])
             self.Avg_N_lbkgal=float(data[10])
+            self.d_irrigate = self.d_stop    # Conservative operator
            # print(data)
         except:
             print("Error while fetching farm data,please check the input file")
@@ -97,33 +98,44 @@ class RISF:
         self.field_parameter={}
         self.crop_mapper={}
         for index,row in workbook.iterrows():
-            # print(row['Crop name'])
-            window_start_date= str(row['Start Appl. Window Date'])[5:11].strip()
+            window_start_date= str(row['Start Appl. Window Date'])[5:11].strip() # Extracting only year and month from the date string
             window_end_date=str(row['End Appl. Window Date'])[5:11].strip()
-            self.field_parameter[window_start_date]=[row['Crop Code'],window_end_date,row['Crop name'],float(row['N removal per unit yield (lb/yield)'])]
-            self.crop_mapper[row['Crop Code']]=window_start_date
-        # print("")
-        # print(self.field_parameter,self.crop_mapper)
+            crop_code = row['Crop Code']
+            crop_name = row['Crop name']
+            n_removal_per_yield = float(row['N removal per unit yield (lb/yield)'])
+            self.field_parameter[window_start_date]= [crop_code, window_end_date, crop_name, n_removal_per_yield] # Append for same window
+            self.crop_mapper[crop_code]= window_start_date
+       
         workbook = pd.read_excel(fieldFile)
-        self.number_of_fields=workbook.iloc[0][1]
+        self.number_of_fields= workbook.iloc[0][1]
         self.field_input={}
 
         for i in range(3,3+self.number_of_fields):
-           # print(workbook.iloc[i][2])
+            field_id = workbook.iloc[i][0]
+            field_area = float(workbook.iloc[i][1])
+            field_crop_code = workbook.iloc[i][2]
+            crop_yield_per_acre = float(workbook.iloc[i][3])
 
+            window_start_date = self.crop_mapper[field_crop_code]
+
+            crop_code = self.field_parameter[window_start_date][0]
+            window_end_date = self.field_parameter[window_start_date][1]
+            crop_name = self.field_parameter[window_start_date][2]
+            n_removal_per_yield = self.field_parameter[window_start_date][3]
+            
            #Taking cumulative of nitrogen required incase there are more than one occurence of same field
-            if self.crop_mapper[workbook.iloc[i][2]] not in self.field_input:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]] = [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[workbook.iloc[i][0]]]
+            if window_start_date not in self.field_input:
+                self.field_input[window_start_date] = [[crop_code]+ [window_end_date]+ [field_area]+ [crop_name]+ [crop_yield_per_acre]+ [n_removal_per_yield]+ [field_id]]
             else:
-                self.field_input[self.crop_mapper[workbook.iloc[i][2]]].append(self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][:2] +[float(workbook.iloc[i][1])]  +[self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][2]]+[float(workbook.iloc[i][3])] + [self.field_parameter[self.crop_mapper[workbook.iloc[i][2]]][-1]]+[workbook.iloc[i][0]])
+                self.field_input[window_start_date].append([crop_code]+ [window_end_date]+ [field_area]+ [crop_name]+ [crop_yield_per_acre]+ [n_removal_per_yield]+ [field_id])
 
         #print("printing final field")
-        #print(self.field_input)
+        #print(self.field_input) # [CC,CN,FieldArea,NRemovel,CropYield,NRemoval,FieldId]
 
         """
            self.field_parameters = {
-            "03-01": [1, "09-30", 3.0, "bermuda", 6.0, 46.0],
-            "02-15": [2, "06-30", 4.0, "corn", 174.0, 0.78],
+            "03-01": [2, "09-30", 3.0, "corn", 6.0, 46.0],
+           
             "03-15": [3, "09-15", 8.0, "soybeans", 40.0, 3.91],
             "09-01": [4, "03-31", 5.0, "wheat", 100.0, 1.14],
         }"""
@@ -286,33 +298,52 @@ class RISF:
 
         for key,val in irrigate_fields.items():
             for i in range(len(val)):
-                fields_volumes.append([val[i][0]/val[i][1], key, i])
+                current_N = val[i][0]
+                total_N = val[i][1]
+                window_end_date = key
+                fields_volumes.append([current_N/total_N, window_end_date, i])
 
         # sort on ratio of current/total
-
         fields_volumes.sort(key=lambda x:x[0])
+
         # print(fields_volumes)
         lbsTogalConversion = 1000/self.Avg_N_lbkgal
 
         irrigate_vol=0
         for values in fields_volumes:
-                if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion < self.minVolPerField*irrigate_fields[values[1]][values[2]][2]:
-                     # print("continuuu ..", values[1],self.minVolPerField*irrigate_fields[values[1]][values[2]][2],irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
+                window_end_date = values[1]
+                index = values[2]
+                irr_list = irrigate_fields[window_end_date][index]
+                current_N_credits = irr_list[0]
+                field_area = irr_list[2]
+                field_id = irr_list[3]
+                N_concentration = self.Avg_N_lbkgal
+
+                # Calculating Nitrogen Volume in gallons
+                field_N_Vol = (current_N_credits / N_concentration) * 1000
+                min_field_N_Vol = self.minVolPerField * field_area
+                max_field_N_Vol = self.maxVolPerField * field_area
+                
+                # Calculating volume allocated to the field
+                if field_N_Vol < min_field_N_Vol:
                      continue
-                if irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion>self.maxVolPerField*irrigate_fields[values[1]][values[2]][2]:
-                      volume_alloted =  self.generateRandomVolume(irrigate_fields[values[1]][values[2]][2])
+                if field_N_Vol > max_field_N_Vol:
+                      volume_alloted =  self.generateRandomVolume(field_area)
                       if volume_alloted> lagoon_volume:
                           continue
 
                 else:
-                    volume_alloted = min(lagoon_volume,irrigate_fields[values[1]][values[2]][0]*lbsTogalConversion)
+                    volume_alloted = min(lagoon_volume,field_N_Vol)
 
-                vol_per_field[irrigate_fields[values[1]][values[2]][3]]+=volume_alloted
+                vol_per_field[field_id]+=volume_alloted
+                lagoon_volume = lagoon_volume - volume_alloted
+                irrigate_vol = irrigate_vol + volume_alloted
 
-                # print("lg",lagoon_volume,irrigate_fields[values[1]][values[2]][0],volume_alloted/lbsTogalConversion)
-                lagoon_volume-=volume_alloted
-                irrigate_vol+=volume_alloted
-                irrigate_fields[values[1]][values[2]][0]-=(volume_alloted/lbsTogalConversion)
+                # Conversion of Volume units (Gallons) to N units (lbs)
+                amount_N_removed = (volume_alloted * N_concentration / 1000)
+
+                # Reducing N Credits from the field
+                irrigate_fields[window_end_date][index][0]-= amount_N_removed
 
         return  irrigate_vol
 
@@ -324,6 +355,8 @@ class RISF:
         :return:
         """
         new_depth = []
+
+        # Animal Waste Calculation (AnimalCount * Manure Generation rate of that Animal * % Wastage Water)
         animal_waste = self.AnimalCount * self.manure_generation_rate[self.AnimalType]*self.wastageWater # might change later
 
         depth = self.d_initial
@@ -337,6 +370,8 @@ class RISF:
         exceedance_lagoon_volume=[]
         day=0
         volume_allocation_per_field={}
+        
+        # Initializing volume allocation of each field as empty 
         for i in range(1,self.number_of_fields+1):
             volume_allocation_per_field[i]=[]
 
@@ -344,30 +379,39 @@ class RISF:
 
             lagoon_surface_area = self.calculateLagoonSurfaceArea(depth)
             if day==0:
+                # Calculating initial lagoon volume based on init depth
                 lagoon_volume = self.calculateLagoonVolume(depth)
             day+=1
-            evaporation_vol = evaporation_rate[i] * lagoon_surface_area * self.mmToInchConversion*self.cuFtToGal*self.inchToFeetConversion
-            rainfall_vol = rainfall_rate[i] * lagoon_surface_area*self.inchToFeetConversion*self.cuFtToGal
+
+            # Evaporation Volume in gallons = Evap rate * lagoon surface area
+            evaporation_vol = evaporation_rate[i] * lagoon_surface_area * self.mmToInchConversion * self.cuFtToGal * self.inchToFeetConversion
+
+            # Rainfall Volume in gallons = Rainfall rate * lagoon surface area
+            rainfall_vol = rainfall_rate[i] * lagoon_surface_area * self.inchToFeetConversion * self.cuFtToGal
             daily_rainfall.append(rainfall_vol)
             daily_evap.append(evaporation_vol)
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
-            # print(self.field_input,"hello")
+
             if cur_date in self.field_input:
                 for window in self.field_input[cur_date]:
-                    end_date = window[1]
-                    if end_date not in irrigate_fields:
-                        irrigate_fields[end_date] = [[float(window[2])*float(window[4])*float(window[5]),
-                                                          float(window[2])*float(window[4])*float(window[5]),window[2],window[6]]]
+                    window_end_date = window[1]
+                    field_area = float(window[2])
+                    crop_yield_per_acre = float(window[4])
+                    n_removal_per_yield = float(window[5])
+                    field_id = window[6]
+                    current_N = field_area * crop_yield_per_acre * n_removal_per_yield
+                    total_N = current_N
+                    if window_end_date not in irrigate_fields:
+                        irrigate_fields[window_end_date] = [[current_N, total_N, field_area, field_id ]]
                     else:
-                        irrigate_fields[end_date].append([float(window[2])*float(window[4])*float(window[5]),
-                                                  float(window[2])*float(window[4])*float(window[5]),window[2],window[6]])
+                        irrigate_fields[window_end_date].append([current_N, total_N,field_area, field_id])
 
 
 
             irrigation_volume=0
             vol_per_field=[0]*(self.number_of_fields+1)
-            if i%7==0 and depth<self.d_stop and rainfall_vol==0:  #irrigation decision per week
+            if i%7==0 and depth<=self.d_irrigate and rainfall_vol==0:  #irrigation decision per week
                 irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume,vol_per_field)
 
 
@@ -376,6 +420,7 @@ class RISF:
             for i in range(1,self.number_of_fields+1):
                 volume_allocation_per_field[i].append(vol_per_field[i])
 
+            # toDo find a new variable name for invent_irri_vol 
             invent_irri_vol.append(irrigation_volume)
             incrementDelta= rainfall_vol + animal_waste - evaporation_vol - irrigation_volume
 
@@ -417,8 +462,7 @@ class RISF:
 
         self.file_name =  str(datetime.now())+".xlsx"
         directory_output = os.getcwd()+'/Output_Files/'
-       # print("lenght, ",len(daily_evap),len(volume_allocation_per_field[3]))
-       # print("current dir",os.getcwd(),directory_output)
+
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
         else:
@@ -487,15 +531,19 @@ class RISF:
             rainfall_rate = workbook[self.cols['total_per']]
             dates=[]
             for index, row in workbook.iterrows():
+                min_air_tem_f = row[self.cols['min_air_tem_f']]
+                min_air_tem_c = 0.5556*(float(min_air_tem_f)-32)
+                max_air_tem_f = row[self.cols['max_air_tem_f']]
+                max_air_tem_c = 0.5556*(float(max_air_tem_f)-32)
+                max_rel_humidity_per = float(row[self.cols['max_rel_humidity_per']])
+                min_rel_humidity_per = float(row[self.cols['min_rel_humidity_per']])
 
                 if row[self.cols['min_air_tem_f']] == '#VALUE!':
                     continue
 
-                e_a.append(self.ea( 0.5556*(float(row[self.cols['min_air_tem_f']])-32), 0.5556*(float(row[self.cols['max_air_tem_f']])-32),
-                                   float(row[self.cols['max_rel_humidity_per']]),
-                                   float(row[self.cols['min_rel_humidity_per']])))
-                e_as.append(self.es(0.5556*(row[self.cols['min_air_tem_f']]-32), 0.5556*(row[self.cols['max_air_tem_f']]-32)))
-                average_air_tem_c.append((float(0.5556*(row[self.cols['max_air_tem_f']] -32))+ float(0.5556*(row[self.cols['min_air_tem_f']]-32))) / 2)
+                e_a.append(self.ea( min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per))
+                e_as.append(self.es(min_air_tem_c, max_air_tem_c))
+                average_air_tem_c.append((max_air_tem_c + min_air_tem_c)/2)
                 avg_wind_speed_at_two_meters.append(row[self.cols['avg_wind_speed_ms']])
                 dates.append(row[self.cols['date']])
             air_density = self.getAirDensity(average_air_tem_c)
@@ -505,30 +553,5 @@ class RISF:
             evaporation_rate = self.calculateEvaporationRate(delta_air_tem_c, e_as, e_a, air_density, net_radiation,
                                                         avg_wind_speed_at_two_meters)
 
-        #    print("\nPrinting average air temperature in Celcius")
-        #   print(average_air_tem_c)
-        #    print("\nPrint e_a")
-        #    print(e_a)
-        #    print("\nPrinting e_as")
-        #    print(e_as)
-        #    print("\nPrinting  net solar radiation")
-        #    print(net_radiation)
-        #    print("\nPrinting average wind velocity")
-        #    print(avg_wind_speed_at_two_meters)
-        #    print("\nPrinting air density")
-        #    print(air_density)
-        #    print("\nPrinting delta air temperature in celcius")
-        #    print(delta_air_tem_c)
-        #    print("\nPrinting evaporation")
-        #    print(evaporation_rate)
-
             new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate,dates)
-
-         #   print("\nPrinting new Depth")
-         #   print(new_depth)
-         #   print(dates)
-         #   print("\nPrinting overflow flags")
-         #   print(overflow_flag)
-        # except:
-        #     print("Error occurred while calculating evaporation")
 
