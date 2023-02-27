@@ -5,6 +5,11 @@ import glob
 import random
 from datetime import datetime
 from collections import defaultdict
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import io
+import base64
 
 """
 “Impact of Future Climate Events on NC Animal Agriculture Systems
@@ -22,7 +27,7 @@ class RISF:
         self.inchToFeetConversion=0.08333
         self.cuFtToGal=7.48052
         self.minVolPerField = 10000  #(gallon/acre)
-        self.maxVolPerField = 27000  #(gallon/acre)
+        self.maxVolPerField = 15000  #(gallon/acre) prev: 27000 (to remain below 1 inch acre)
 
         self.cols = {'date': 'Date',
                      'max_air_tem_f': 'Maximum Air Temperature (F)',
@@ -32,6 +37,7 @@ class RISF:
                      'total_per': 'Total Precipitation (in)',
                      'avg_solar_rad': 'Average Solar Radiation (W/m2)',
                      'avg_wind_speed_ms': 'Average Wind Speed (ms)',
+                     'avg_wind_speed_mph': 'Average Wind Speed (mph)',
                      }
         self.constants_windVelocity = [4.87, 67.8, 5.42]  # make constants
         self.constants_z2 = 10.0  # elevation constants
@@ -90,13 +96,31 @@ class RISF:
         except:
             print("Error while fetching farm data,please check the input file")
 
+    def getManualFarmDetails(self,farmdata):
+        try:
+
+            #Assigning value to the variables from excel
+            self.AnimalType=(farmdata['animaltype'])
+            self.AnimalCount=float(farmdata['avgnumofanimals'])
+            self.wastageWater= float(farmdata['percentwaterloss'])+1
+            self.Lagoon_V_Coeffs= [float(v.strip()) for v in farmdata['coeffvol'].split(',')]
+            self.Lagoon_A_Coeffs=  [float(a.strip()) for a in farmdata['coeffarea'].split(',')]
+            self.Lagoon_d_Coeffs=  [float(d.strip()) for d in farmdata['coeffdepth'].split(',')]
+            self.d_initial= float(farmdata['initdepth'])
+            self.d_start=float(farmdata['irrigationstartdepth'])    
+            self.d_stop = float(farmdata['irrigationstopdepth'])
+            self.d_freeboard=float(farmdata['floodingdepth'])
+            self.Avg_N_lbkgal=float(farmdata['avgnitroconcentration'])
+            self.d_irrigate = self.d_stop    # Conservative operator
+        except:
+            print("Error while fetching farm data,please check the input file")  
 
     def getFieldDetails(self,fieldFile):
         workbook = pd.read_excel(fieldFile, skiprows=1,nrows=5,usecols=range(6,12))
 
         # print(workbook)
         self.field_parameter={}
-        self.crop_mapper={}
+        self.crop_mapper={}      
         for index,row in workbook.iterrows():
             window_start_date= str(row['Start Appl. Window Date'])[5:11].strip() # Extracting only year and month from the date string
             window_end_date=str(row['End Appl. Window Date'])[5:11].strip()
@@ -109,7 +133,8 @@ class RISF:
         workbook = pd.read_excel(fieldFile)
         self.number_of_fields= workbook.iloc[0][1]
         self.field_input={}
-
+        self.field_map = {}
+        ind = 1
         for i in range(3,3+self.number_of_fields):
             field_id = workbook.iloc[i][0]
             field_area = float(workbook.iloc[i][1])
@@ -122,7 +147,8 @@ class RISF:
             window_end_date = self.field_parameter[window_start_date][1]
             crop_name = self.field_parameter[window_start_date][2]
             n_removal_per_yield = self.field_parameter[window_start_date][3]
-            
+            self.field_map[field_id] = ind
+            ind +=1
            #Taking cumulative of nitrogen required incase there are more than one occurence of same field
             if window_start_date not in self.field_input:
                 self.field_input[window_start_date] = [[crop_code]+ [window_end_date]+ [field_area]+ [crop_name]+ [crop_yield_per_acre]+ [n_removal_per_yield]+ [field_id]]
@@ -161,7 +187,68 @@ class RISF:
                                         pow(tem + self.constants_deltas[3], 2))) for tem in average_air_tem_c]
         return delta_average_air_tem_c
 
+    def getManualFieldDetails(self,fielddata):
+        #workbook = pd.read_excel(fieldFile, skiprows=1,nrows=5,usecols=range(6,12))
+        output_dict = {"cropcode": [], "cropname": [], "nremovalperyield":[], "premovalperyield":[],"startwindow":[], "endwindow":[],
+        "fieldid":[],"fieldarea":[],"fieldcroptype":[],"fieldcropyield":[]}
+        for key, value in fielddata.items():
+            if "cropcode" in key:
+                output_dict["cropcode"].append(value)
+            elif "cropname" in key:
+                output_dict["cropname"].append(value)
+            elif "nremovalperyield" in key:
+                output_dict["nremovalperyield"].append(value)
+            elif "premovalperyield" in key:
+                output_dict["premovalperyield"].append(value)
+            elif "startwindow" in key:
+                output_dict["startwindow"].append(value[5:])
+            elif "endwindow" in key:
+                output_dict["endwindow"].append(value[5:])
+            elif "fieldid" in key:
+                output_dict["fieldid"].append(value)
+            elif "fieldarea" in key:
+                output_dict["fieldarea"].append(value)
+            elif "fieldcroptype" in key:
+                output_dict["fieldcroptype"].append(value)
+            elif "fieldcropyield" in key:
+                output_dict["fieldcropyield"].append(value)
+        #print(output_dict)
+        self.field_parameter={}
+        self.crop_mapper={}
+        no_of_crops = len(output_dict["cropcode"])
+        for index in range(0,no_of_crops):
+             window_start_date= output_dict["startwindow"][index]  # Extracting only year and month from the date string
+             window_end_date= output_dict["endwindow"][index]
+             crop_code = output_dict["cropcode"][index]
+             crop_name = output_dict["cropname"][index]
+             n_removal_per_yield = float(output_dict["nremovalperyield"][index])
+             self.field_parameter[window_start_date]= [crop_code, window_end_date, crop_name, n_removal_per_yield] # Append for same window
+             self.crop_mapper[crop_code]= window_start_date
+        #print(self.field_parameter)
+        #print(self.crop_mapper)
 
+        self.number_of_fields= len(output_dict["fieldid"])
+        self.field_input={}
+        self.field_map = {}
+        for i in range(0,self.number_of_fields):
+            field_id = output_dict["fieldid"][i]
+            field_area = output_dict["fieldarea"][i]
+            field_crop_code = output_dict["fieldcroptype"][i]
+            crop_yield_per_acre = output_dict["fieldcropyield"][i]
+
+            window_start_date = self.crop_mapper[field_crop_code]
+
+            crop_code = self.field_parameter[window_start_date][0]
+            window_end_date = self.field_parameter[window_start_date][1]
+            crop_name = self.field_parameter[window_start_date][2]
+            n_removal_per_yield = self.field_parameter[window_start_date][3]
+            self.field_map[field_id] = i+1
+           #Taking cumulative of nitrogen required incase there are more than one occurence of same field
+            if window_start_date not in self.field_input:
+                self.field_input[window_start_date] = [[crop_code, window_end_date, field_area, crop_name, crop_yield_per_acre, n_removal_per_yield, field_id]]
+            else:
+                self.field_input[window_start_date].append([crop_code, window_end_date, field_area, crop_name, crop_yield_per_acre, n_removal_per_yield, field_id])
+        #print(self.field_input)
 
     def ea(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per):
         """
@@ -293,7 +380,7 @@ class RISF:
         return self.Lagoon_d_Coeffs[0] + self.Lagoon_d_Coeffs[1] * volume + self.Lagoon_d_Coeffs[2] *volume*volume + self.Lagoon_d_Coeffs[3] *volume*volume*volume + self.Lagoon_d_Coeffs[4] *volume*volume*volume*volume
 
 
-    def isIrrigationReq(self,irrigate_fields,lagoon_volume,vol_per_field):
+    def isIrrigationReq(self,irrigate_fields,lagoon_volume,vol_per_field, nitro_per_field):
         fields_volumes=[]
 
         for key,val in irrigate_fields.items():
@@ -316,10 +403,10 @@ class RISF:
                 irr_list = irrigate_fields[window_end_date][index]
                 current_N_credits = irr_list[0]
                 field_area = irr_list[2]
-                field_id = irr_list[3]
+                field_id = self.field_map[irr_list[3]]
                 N_concentration = self.Avg_N_lbkgal
 
-                # Calculating Nitrogen Volume in gallons
+                # Calculating Nitrogen mass in pounds
                 field_N_Vol = (current_N_credits / N_concentration) * 1000
                 min_field_N_Vol = self.minVolPerField * field_area
                 max_field_N_Vol = self.maxVolPerField * field_area
@@ -333,7 +420,7 @@ class RISF:
                           continue
 
                 else:
-                    volume_alloted = min(lagoon_volume,field_N_Vol)
+                    volume_alloted = min(min_field_N_Vol,field_N_Vol)
 
                 vol_per_field[field_id]+=volume_alloted
                 lagoon_volume = lagoon_volume - volume_alloted
@@ -344,12 +431,13 @@ class RISF:
 
                 # Reducing N Credits from the field
                 irrigate_fields[window_end_date][index][0]-= amount_N_removed
+                nitro_per_field[field_id] = amount_N_removed
 
         return  irrigate_vol
 
     def calculateNewDepths(self, evaporation_rate, rainfall_rate,dates):
         """
-        Calculates new depth from evaportion_rate,rainfall_rate and animal_waste
+        Calculates new depth from evaportion_rate,rainfall_rate and animal_waste_vol
         :param evaporation_rate:
         :param rainfall_rate:
         :return:
@@ -357,7 +445,7 @@ class RISF:
         new_depth = []
 
         # Animal Waste Calculation (AnimalCount * Manure Generation rate of that Animal * % Wastage Water)
-        animal_waste = self.AnimalCount * self.manure_generation_rate[self.AnimalType]*self.wastageWater # might change later
+        animal_waste_vol = self.AnimalCount * self.manure_generation_rate[self.AnimalType]*self.wastageWater # might change later
 
         depth = self.d_initial
         overflow_flag = []
@@ -370,10 +458,12 @@ class RISF:
         exceedance_lagoon_volume=[]
         day=0
         volume_allocation_per_field={}
+        nitrogen_concentration_per_field={}
         
         # Initializing volume allocation of each field as empty 
         for i in range(1,self.number_of_fields+1):
             volume_allocation_per_field[i]=[]
+            nitrogen_concentration_per_field[i]=[]
 
         for i in range(len(evaporation_rate)):
 
@@ -393,6 +483,7 @@ class RISF:
             data = dates[i].split("-")
             cur_date = data[1]+'-'+data[2]
 
+            nitro_per_field=[0]*(self.number_of_fields+1)
             if cur_date in self.field_input:
                 for window in self.field_input[cur_date]:
                     window_end_date = window[1]
@@ -402,6 +493,7 @@ class RISF:
                     field_id = window[6]
                     current_N = field_area * crop_yield_per_acre * n_removal_per_yield
                     total_N = current_N
+                    #nitro_per_field[self.field_map[field_id]] = current_N
                     if window_end_date not in irrigate_fields:
                         irrigate_fields[window_end_date] = [[current_N, total_N, field_area, field_id ]]
                     else:
@@ -412,17 +504,18 @@ class RISF:
             irrigation_volume=0
             vol_per_field=[0]*(self.number_of_fields+1)
             if i%7==0 and depth<=self.d_irrigate and rainfall_vol==0:  #irrigation decision per week
-                irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume,vol_per_field)
+                irrigation_volume=self.isIrrigationReq(irrigate_fields,lagoon_volume,vol_per_field, nitro_per_field)
 
 
 
             #Get volume allocated for each field
             for i in range(1,self.number_of_fields+1):
                 volume_allocation_per_field[i].append(vol_per_field[i])
+                nitrogen_concentration_per_field[i].append(nitro_per_field[i])
 
             # toDo find a new variable name for invent_irri_vol 
             invent_irri_vol.append(irrigation_volume)
-            incrementDelta= rainfall_vol + animal_waste - evaporation_vol - irrigation_volume
+            incrementDelta= rainfall_vol + animal_waste_vol - evaporation_vol - irrigation_volume
 
             #toDo wastewater
             delta_change.append(incrementDelta)
@@ -443,7 +536,7 @@ class RISF:
             else:
                 overflow_flag.append("N/A")
 
-            if depth<0:
+            if depth<=1:
                 exceedance_lagoon_volume.append(incrementDelta)
                 #The depth remains as previous day as we move the extra volume to exceedance
                 depth=prev_day_depth
@@ -474,12 +567,18 @@ class RISF:
         for i in range(1, self.number_of_fields+1):
             tem=volume_allocation_per_field[i]
             cols.append(tem)
+        
+        for i in range(1, self.number_of_fields+1):
+            tem=nitrogen_concentration_per_field[i]
+            cols.append(tem)
 
         df1= pd.DataFrame(cols).transpose()
 
         col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
         for i in range(1, self.number_of_fields+1):
-            col_labels.append("Field "+str(i))
+            col_labels.append("Vol Field "+str(i))
+        for i in range(1, self.number_of_fields+1):
+            col_labels.append("Nitrogen Mass Field "+str(i))
 
         df1.columns=col_labels
        # df1.to_excel(directory_output+"Report-"+self.file_name, sheet_name='Report')
@@ -490,7 +589,9 @@ class RISF:
         df2 = df2.groupby('YearMonth',sort=False).sum()
         col_labels=["Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
         for i in range(1, self.number_of_fields+1):
-            col_labels.append("Field "+str(i))
+            col_labels.append("Vol Field "+str(i))
+        for i in range(1, self.number_of_fields+1):
+            col_labels.append("Nitrogen Mass Field "+str(i))
 
         df2 = df2[col_labels]
 #        print(df2)
@@ -519,15 +620,24 @@ class RISF:
         # try:
             workbook.fillna(0)
             workbook.replace(to_replace='QCF',value=0,inplace=True)
+            workbook.replace(to_replace='MV',value=0,inplace=True)
             average_air_tem_c = []
 
             # ToDo: find good variable name for this list
 
             e_a = []
             e_as = []
+            ms = self.cols['avg_wind_speed_ms']
+            mph = self.cols['avg_wind_speed_mph']
+            avg_wind_speed_ms = 0
+            if ms in workbook:
+                avg_wind_speed_ms = workbook[ms]
+            elif mph in workbook:
+                avg_wind_speed_ms = [ws * 0.44704 for ws in workbook[mph]]
+
 
             net_radiation = self.getNetRadiation(workbook[self.cols['avg_solar_rad']])
-            avg_wind_speed_at_two_meters = self.getWindSpeed(workbook[self.cols['avg_wind_speed_ms']])
+            avg_wind_speed_at_two_meters = self.getWindSpeed(avg_wind_speed_ms)
             rainfall_rate = workbook[self.cols['total_per']]
             dates=[]
             for index, row in workbook.iterrows():
@@ -544,8 +654,17 @@ class RISF:
                 e_a.append(self.ea( min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per))
                 e_as.append(self.es(min_air_tem_c, max_air_tem_c))
                 average_air_tem_c.append((max_air_tem_c + min_air_tem_c)/2)
-                avg_wind_speed_at_two_meters.append(row[self.cols['avg_wind_speed_ms']])
+                avg_wind_speed_ms = 0
+          
+
+                if ms in row:
+                    avg_wind_speed_ms = row[ms]
+                elif mph in row:
+                    avg_wind_speed_ms = row[mph] * 0.44704
+
+                avg_wind_speed_at_two_meters.append(avg_wind_speed_ms)
                 dates.append(row[self.cols['date']])
+
             air_density = self.getAirDensity(average_air_tem_c)
             delta_air_tem_c = self.getDelta(average_air_tem_c)
 
@@ -554,4 +673,33 @@ class RISF:
                                                         avg_wind_speed_at_two_meters)
 
             new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate,dates)
+
+    def visualize(self, fileName):
+         pd.set_option("styler.format.thousands", ",")
+         df = pd.read_excel(fileName,"Aggregation")
+         df['Year'] = df['YearMonth'].apply(lambda x: x.split('-')[0])
+         grouped = df.groupby('Year').sum()
+          # Plot the data as a bar graph
+         fig, ax = plt.subplots(figsize=(8, 4))
+         #label value will show in the legend text in the bar graph
+         ax.bar(grouped.index, grouped["rainfall"]/10**6, label="Rainfall")
+         ax.bar(grouped.index, grouped["evaporation"]/10**6, label="Evaporation")
+         ax.bar(grouped.index, grouped["exceedance Lagoon Volume"]/10**6, label="Exceedance Lagoon Volume")
+         ax.legend(loc='best')
+         ax.set_ylim([0, 12])
+         plt.xlabel('Year')
+         plt.ylabel('Volume (million gallons)')
+         
+
+         # Save the plot to a buffer
+         buf = io.BytesIO()
+         plt.savefig(buf, format="png")
+         buf.seek(0)
+         string = base64.b64encode(buf.read()).decode("utf-8")
+
+         vol_table_data = grouped.filter(regex='Vol Field')
+         nitro_table_data = grouped.filter(regex='Nitrogen Mass')
+         return string, vol_table_data, nitro_table_data
+
+
 

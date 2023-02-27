@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>RISF Bio Department</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', filename='barn.ico') }}">
+        <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.8.0/dist/alpine.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+        <link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css"></link>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+
+        <script src="https://cdn.ncsu.edu/brand-assets/utility-bar/ub.php?googleCustomSearchCode=RISF&placeholder=RISF&maxWidth=1100&color=gray&showBrick=1"></script>
+    </head>
+    <body>
+        <div class="container-md"><br/><br/>
+            <h3>Farm Details</h3> <br/>
+            <form method="POST" action="/manual"  enctype = "multipart/form-data">
+              <div class="form-group">
+                <label for="animaltype">Select the animal type:</label>
+                <select class="form-control" name="animaltype">
+                  <option>Farrow-wean</option>
+                  <option>Farrow-feeder</option>
+                  <option>Farrow-finish</option>
+                  <option>Wean-feeder</option>
+                  <option>Wean-finish</option>
+                  <option>Feeder-finish</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="avgnumofanimals">Total number of animals:</label>
+                <input type="text" class="form-control" name="avgnumofanimals">
+              </div>
+              <div class="form-group">
+                <label for="percentwaterloss"> Water loss (% manure productions):</label>
+                <input type="text" class="form-control" name="percentwaterloss">
+              </div>
+              <div class="form-group">
+                <label for="coeffvol">Regression coefficients calculating occupied lagoon volume as a function of liquid depth (Comma separated):</label>
+                <input type="text" class="form-control" name="coeffvol">
+              </div>
+              <div class="form-group">
+                <label for="coeffarea">Regression coefficients calculating lagoon surace area as a function of liquid depth (Comma separated):</label>
+                <input type="text" class="form-control" name="coeffarea">
+              </div>
+              <div class="form-group">
+                <label for="coeffdepth">Regression coefficients calculating lagoon depth from top as a function of occupied lagooon volume (Comma separated):</label>
+                <input type="text" class="form-control" name="coeffdepth">
+              </div>
+              <div class="form-group">
+                <label for="initdepth">Initial lagoon freeboard (inches):</label>
+                <input type="text" class="form-control" name="initdepth">
+              </div>
+              <div class="form-group">
+                <label for="irrigationstartdepth">Start-pump depth (top of storage volume) (inches):</label>
+                <input type="text" class="form-control" name="irrigationstartdepth">
+              </div>
+              <div class="form-group">
+                <label for="irrigationstopdepth">Stop-pump depth (top of treatment volume) (inches):</label>
+                <input type="text" class="form-control" name="irrigationstopdepth">
+              </div>
+              <div class="form-group">
+                <label for="floodingdepth">Freeboard violation alarm (inches):</label>
+                <input type="text" class="form-control" name="floodingdepth" placeholder="18">
+              </div>
+              <div class="form-group">
+                <label for="avgnitroconcentration">Annual average concentration of nitrogen in the irrigated liquid (lbs/1000 gallons) :</label>
+                <input type="text" class="form-control" name="avgnitroconcentration">
+              </div><br/>
+
+              <div class="form-group">
+                <label for="dynamicInputContainer"><h3>Crop Information</h3> </label>
+                <div class="row clearfix">
+                  <div class="col-md-12 table-responsive">
+                  <table class="table table-bordered table-hover table-sortable" id="tab_logic">
+                    <thead>
+                      <tr>
+                        <th class="text-center">
+                          Crop Code
+                        </th>
+                        <th class="text-center">
+                          Crop Name
+                        </th>
+                        <th class="text-center">
+                          N removal per unit yield (lb/yield)
+                        </th>
+                        <th class="text-center">
+                          P removal per unit yield (lb/yield)
+                        </th>
+                          <th class="text-center">
+                            Start Appl. Window Date
+                        </th>
+                        <th class="text-center">
+                          End Appl. Window Date
+                        </th>
+                            <th class="text-center" style="border-top: 1px solid #ffffff; border-right: 1px solid #ffffff;">
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        <tr id='addr0' data-id="0" class="hidden">
+                        <td data-name="cropcode">
+                            <input type="text" name='cropcode0'  placeholder='Crop Code' class="form-control"/>
+                        </td>
+                        <td data-name="cropname">
+                            <input type="text" name='cropname0' placeholder='Crop Name' class="form-control"/>
+                        </td>
+                        <td data-name="nremovalperyield">
+                          <input type="text" name='nremovalperyield0' placeholder='N removal per unit yield (lb/yield)' class="form-control"/>
+                      </td>
+                      <td data-name="premovalperyield">
+                        <input type="text" name='premovalperyield0' placeholder='P removal per unit yield (lb/yield)' class="form-control"/>
+                    </td>
+                    <td data-name="startwindow">
+                      <input type="date" name='startwindow0' placeholder='Start Appl. Window Date' class="form-control"/>
+                    </td>
+                    <td data-name="endwindow">
+                      <input type="date" name='endwindow0' placeholder='End Appl. Window Date' class="form-control"/>
+                    </td>
+                        <td data-name="del">
+                            <button name="del0" class='btn btn-danger glyphicon glyphicon-remove row-remove'><span aria-hidden="true">×</span></button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <a id="add_row" class="btn btn-primary float-right">Add Crop</a>
+              </div>
+              <script>
+  $(document).ready(function(){
+    var i=1;
+    $("#add_row").click(function(){
+      $('#tab_logic').append('<tr id="addr'+(i)+'" data-id="'+(i)+'"></tr>');
+      $('#addr'+(i)).html("<td data-name='cropcode'><input name='cropcode"+i+"' type='text' placeholder='Crop Code' class='form-control'/></td><td data-name='cropname'><input  name='cropname"+i+"' type='text' placeholder='Crop Name' class='form-control'/></td><td data-name='nremovalperyield'><input  name='nremovalperyield"+i+"' type='text' placeholder='N removal per unit yield (lb/yield)' class='form-control'/></td><td data-name='premovalperyield'><input  name='premovalperyield"+i+"' type='text' placeholder='P removal per unit yield (lb/yield)' class='form-control'/></td><td data-name='startwindow'><input  name='startwindow"+i+"' type='date' placeholder='Start Appl. Window Date' class='form-control'/></td><td data-name='endwindow'><input  name='endwindow"+i+"' type='date' placeholder='End Appl. Window Date' class='form-control'/></td><td data-name='del'><button name='del"+i+"' class='btn btn-danger glyphicon glyphicon-remove row-remove'><span aria-hidden='true'>×</span></button></td>");
+      i++; 
+    });
+    $(document).on("click",".row-remove",function(){
+      i--;
+      $(this).closest("tr").remove();
+    });
+  });
+
+              </script>
+
+              <div class="form-group">
+              <label for="fieldInformation"><h3>Field Information</h3> </label>
+              <p>Enter the number of fields:</p>
+              <input type="text" id="rowCount">
+              <button type="button" class="btn btn-primary" onclick="generateTable()">Insert field data</button>
+              <br><br>
+              <table id="tableInput" class="table table-bordered"></table> 
+              </div>
+
+              <script>
+                function generateTable() {
+                  var rowCount = parseInt(document.getElementById("rowCount").value);
+                  var table = document.getElementById("tableInput");
+            
+                  // Clear the existing table
+                  while (table.rows.length > 0) {
+                    table.deleteRow(0);
+                  }
+            
+                  // Create the table header
+                  var header = table.createTHead();
+                  var row = header.insertRow(0);
+                  var cell1 = row.insertCell(0);
+                  var cell2 = row.insertCell(1);
+                  var cell3 = row.insertCell(2);
+                  var cell4 = row.insertCell(3);
+                
+                  cell1.innerHTML = "<b>Field ID</b>";
+                  cell2.innerHTML = "<b>Field Area (acre)</b>";
+                  cell3.innerHTML = "<b>Crop type</b>";
+                  cell4.innerHTML = "<b>Crop yield (yield unit/acre)</b>";
+                  // Create the table rows
+                  for (var i = 0; i < rowCount; i++) {
+                    var row = table.insertRow(-1);
+                    var cell1 = row.insertCell(0);
+                    var cell2 = row.insertCell(1);
+                    var cell3 = row.insertCell(2);
+                    var cell4 = row.insertCell(3);
+                    cell1.innerHTML = "<input type='text' placeholder='Field ID' name='fieldid"+i+"' class='form-control'>";
+                    cell2.innerHTML = "<input type='text' placeholder='Field Area (acre)' name='fieldarea"+i+"' class='form-control'>";
+                    cell3.innerHTML = "<input type='text' placeholder='Crop type' name='fieldcroptype"+i+"' class='form-control'>";
+                    cell4.innerHTML = "<input type='text' placeholder='Crop yield (yield unit/acre)' name='fieldcropyield"+i+"' class='form-control'>";
+                  }
+                }
+              </script>
+              <div class="form-group">
+                <h3>Select a Climate Station</h3> <br/>
+                  <div class="radio">
+                    <label><input type="radio" name="station" value="GOLD">  Cherry Research Station, GOLD - Goldsboro, NC (01-2015 to 01-2020)</label>
+                  </div>
+                  <div class="radio">
+                    <label><input type="radio" name="station" value="KINS">  Cunningham Research Center, KINS - Kinston, NC (01-2015 to 01-2020)</label>
+                  </div>
+                  <div class="radio">
+                    <label><input type="radio" name="station" value="CLIN">  Horticultural Crops Research Station, CLIN - Clinton, NC (01-2015 to 01-2020)</label>
+                  </div>
+                  <div class="radio">
+                    <label><input type="radio" name="station" value="WILD">  Williamsdale Field Lab, WILD - Wallace, NC (01-2015 to 01-2020)</label>
+                  </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+            </form>
+            </div> <br/>
+    <div class="sub_div">
+        <div class="footer-style">
+            <div class="footer-ncsu">
+                <div>
+                    <div class="col-xs-12">
+                        <a href="https://www.ncsu.edu/"><img style="width: 4vw" src="https://www.bae.ncsu.edu/wp-content/themes/riddick/dist/images/ncstate-logos/ncstate-type-2x1-wht.png"></a>
+                    </div>
+                </div>
+                <div>
+                    <div class="col-xs-12">
+                        <h3 class="text-light">Department of Biological and Agricultural Engineering</h3>
+                    </div>
+                </div>
+                <div>
+                    <div class="col-xs-12">
+                        <p class="text-light">North Carolina State University |
+                            3100 Faucette Drive | Raleigh, NC | 27695-7625                            </p>
+                    </div>
+                </div>
+                <div>
+                    <div class="col-xs-12">
+                        <p class="small text-light">
+                            © 2022 <a class="text-light" href="http://www.ncsu.edu" target="_blank"> NC State University</a>&nbsp;|&nbsp;
+                            <a class="text-light" href="https://www.bae.ncsu.edu/wp-admin/">Log in</a>&nbsp;|&nbsp;<a class="text-light" href="http://accessibility.ncsu.edu/" target="_blank">Accessibility</a>&nbsp;|&nbsp;
+                            <a class="text-light" href="http://www.ncsu.edu/privacy/" target="_blank">Privacy</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-ncsu">
+                <img style="width: 11vw" src="https://www.bae.ncsu.edu/wp-content/uploads/2017/02/bae_new-drop-1800.png">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<html>
+  <head>
+    <title>Visualization</title>
+    <style>
+        table.data {
+          width: 80%;
+          border-collapse: collapse;
+          border-spacing: 0;
+          font-size: 14px;
+        }
+        table.data th, table.data td {
+          padding: 8px;
+          text-align: center;
+          border: 1px solid #ddd;
+        }
+        table.data th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+        table2.data {
+          width: 80%;
+          border-collapse: collapse;
+          border-spacing: 0;
+          font-size: 14px;
+        }
+        table2.data th, table.data td {
+          padding: 8px;
+          text-align: center;
+          border: 1px solid #ddd;
+        }
+        table2.data th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+      </style>
+  </head>
+  <body>
+    <h3>The bar graph illustrates volumes for [a] total rainfall, [b] evaporation, and [c] lagoon volume exceedance (in Million Gallons) for for each year in simulation range: </h3>
+    <img src="data:image/png;base64,{{ plot }}">
+    <br>
+    <h3>The following table summarizes total volume of irrigated supernatant (in Gallons per year) for each field in the nutrient management plan:</h3>
+    {{ table|safe }}
+    <h3>The following table summarizes total nitrogen applied (in Pounds of N per year) to each field in the nutrient management plan:</h3>
+    {{ table2|safe }}
+  </body>
+</html>
