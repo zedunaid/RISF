@@ -8,8 +8,10 @@ from collections import defaultdict
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
 import io
 import base64
+from openpyxl import load_workbook, Workbook
 
 """
 “Impact of Future Climate Events on NC Animal Agriculture Systems
@@ -45,6 +47,8 @@ class RISF:
 
         self.constants_radiation_a = 0.65
         self.constants_radiation_b = -0.85
+        self.out = []
+        self.input = []
 
         # self.Lagoon_d_Coeffs = [1.4235e+02, -1.5777e-05, 2.6079e-13]
         #
@@ -62,6 +66,15 @@ class RISF:
             'Wean-feeder': 0.30,
             'Wean-finish': 1.17,
             'Feeder-finish': 1.37
+        }
+
+        self.input_data = {
+            'numofanimals': 0,
+            'percentwaterloss': 0,
+            'initdepth': 0,
+            'avgnitroconcentration': 0,
+            'fieldarea':[],
+            'cropyield': []
         }
 
         # self.field_parameters = {
@@ -96,22 +109,51 @@ class RISF:
         except:
             print("Error while fetching farm data,please check the input file")
 
-    def getManualFarmDetails(self,farmdata):
+    def getManualFarmDetails(self,farmdata, isDeveloper = False):
         try:
-
             #Assigning value to the variables from excel
             self.AnimalType=(farmdata['animaltype'])
-            self.AnimalCount=float(farmdata['avgnumofanimals'])
-            self.wastageWater= float(farmdata['percentwaterloss'])+1
-            self.Lagoon_V_Coeffs= [float(v.strip()) for v in farmdata['coeffvol'].split(',')]
-            self.Lagoon_A_Coeffs=  [float(a.strip()) for a in farmdata['coeffarea'].split(',')]
-            self.Lagoon_d_Coeffs=  [float(d.strip()) for d in farmdata['coeffdepth'].split(',')]
-            self.d_initial= float(farmdata['initdepth'])
+            if isDeveloper: 
+                numofanimals = float(farmdata['avgnumofanimals'])
+                changenumofanimals = float(farmdata['percnumofanimals'])
+
+                percentwaterloss = float(farmdata['percentwaterloss'])+1 
+                changewaterloss = float(farmdata['percwaterloss'])
+
+                d_initial= float(farmdata['initdepth'])
+                change_d_initial= float(farmdata['percinitdepth'])
+
+                avgnitroconcentration = float(farmdata['avgnitroconcentration'])
+                changeavgnitro = float(farmdata['percavgnitro']) 
+                
+                self.AnimalCount = self.getUniformFloatValue(numofanimals,changenumofanimals)
+                self.wastageWater= self.getUniformFloatValue(percentwaterloss,changewaterloss)
+                self.d_initial= self.getUniformFloatValue(d_initial,change_d_initial) 
+                self.Avg_N_lbkgal = self.getUniformFloatValue(avgnitroconcentration,changeavgnitro) 
+
+                self.input_data['numofanimals'] = self.AnimalCount
+                self.input_data['percentwaterloss'] = self.wastageWater
+                self.input_data['initdepth'] = self.d_initial
+                self.input_data['avgnitroconcentration'] = self.Avg_N_lbkgal
+
+
+            else:
+                self.AnimalCount=float(farmdata['avgnumofanimals'])
+                self.wastageWater= float(farmdata['percentwaterloss'])+1
+                self.d_initial= float(farmdata['initdepth'])
+                self.Avg_N_lbkgal=float(farmdata['avgnitroconcentration'])
+
             self.d_start=float(farmdata['irrigationstartdepth'])    
             self.d_stop = float(farmdata['irrigationstopdepth'])
             self.d_freeboard=float(farmdata['floodingdepth'])
-            self.Avg_N_lbkgal=float(farmdata['avgnitroconcentration'])
+            
             self.d_irrigate = self.d_stop    # Conservative operator
+
+            self.L_init = self.L = float(farmdata['length'])
+            self.W_init = self.W = float(farmdata['width'])
+            self.h_init = self.h = float(farmdata['depth'])
+            self.Z = float(farmdata['sideslope'])
+
         except:
             print("Error while fetching farm data,please check the input file")  
 
@@ -173,7 +215,15 @@ class RISF:
         """
         return random.randint(self.minVolPerField*acre+1,self.maxVolPerField*acre-1)   #randomly generates volume from the range
 
+    def getUniformIntValue(self,val,change):
+        val = int(val)
+        change = int(change)
+        return random.randint(int(val*(1-(change/100))),int(val*(1+(change/100))))   
 
+    def getUniformFloatValue(self,val,change):
+        val = float(val)
+        return random.uniform(val*(1-(change/100)),val*(1+(change/100))) 
+    
     def getDelta(self, average_air_tem_c):
         """
         Calculates delta for each average air temperature (C)
@@ -187,8 +237,7 @@ class RISF:
                                         pow(tem + self.constants_deltas[3], 2))) for tem in average_air_tem_c]
         return delta_average_air_tem_c
 
-    def getManualFieldDetails(self,fielddata):
-        #workbook = pd.read_excel(fieldFile, skiprows=1,nrows=5,usecols=range(6,12))
+    def getManualFieldDetails(self,fielddata, isDeveloper = False):
         output_dict = {"cropcode": [], "cropname": [], "nremovalperyield":[], "premovalperyield":[],"startwindow":[], "endwindow":[],
         "fieldid":[],"fieldarea":[],"fieldcroptype":[],"fieldcropyield":[]}
         for key, value in fielddata.items():
@@ -207,12 +256,24 @@ class RISF:
             elif "fieldid" in key:
                 output_dict["fieldid"].append(value)
             elif "fieldarea" in key:
-                output_dict["fieldarea"].append(value)
+                if isDeveloper:
+                    change = int(fielddata['percareafield'])
+                    fieldarea = self.getUniformIntValue(value,change)
+                    output_dict["fieldarea"].append(fieldarea)
+                else:
+                    output_dict["fieldarea"].append(value)
+
             elif "fieldcroptype" in key:
                 output_dict["fieldcroptype"].append(value)
             elif "fieldcropyield" in key:
-                output_dict["fieldcropyield"].append(value)
-        #print(output_dict)
+                if isDeveloper:
+                    change = float(fielddata['percyield'])
+                    fieldcropyield = self.getUniformFloatValue(value,change)
+                    output_dict["fieldcropyield"].append(fieldcropyield)
+                else:
+                    output_dict["fieldcropyield"].append(value)
+        self.input_data["fieldarea"] = output_dict["fieldarea"]
+        self.input_data["cropyield"] = output_dict["fieldcropyield"]
         self.field_parameter={}
         self.crop_mapper={}
         no_of_crops = len(output_dict["cropcode"])
@@ -224,8 +285,6 @@ class RISF:
              n_removal_per_yield = float(output_dict["nremovalperyield"][index])
              self.field_parameter[window_start_date]= [crop_code, window_end_date, crop_name, n_removal_per_yield] # Append for same window
              self.crop_mapper[crop_code]= window_start_date
-        #print(self.field_parameter)
-        #print(self.crop_mapper)
 
         self.number_of_fields= len(output_dict["fieldid"])
         self.field_input={}
@@ -349,27 +408,74 @@ class RISF:
                                                                                                         (pow(math.log(self.constants_z2 / z0), 2)))) * (e_as[i] - e_a[i])))
 
         return evaporation
-
-    def calculateLagoonSurfaceArea(self, depth):
+    
+    def calculateDimensions(self, depth):
+        self.L = self.L_init - (2*(depth/12)*self.Z)
+        self.W = self.W_init - (2*(depth/12)*self.Z)
+        self.h = self.h_init - (depth/12)
+    
+    def calculateLagoonSurfaceArea(self):
         """
         Calculate surface area for lagoon
         :param self:
-        :param depth:
-        :return Surface area for lagoon from depth
+        :return Surface area for lagoon from depth in sq ft
         """
-        return self.Lagoon_A_Coeffs[0] + self.Lagoon_A_Coeffs[1] * depth
+        return self.L * self.W 
 
-    def calculateLagoonVolume(self, depth):
+
+    # def calculateLagoonSurfaceArea(self, depth):
+    #     """
+    #     Calculate surface area for lagoon
+    #     :param self:
+    #     :param depth:
+    #     :return Surface area for lagoon from depth
+    #     """
+    #     return self.Lagoon_A_Coeffs[0] + self.Lagoon_A_Coeffs[1] * depth
+
+    def calculateLagoonVolume(self):
         """
         Calculate volume for lagoon
         :param self:
         :param depth:
-        :return: Volume for lagoon from depth
+        :return: Volume for lagoon from depth in gallons
         """
+        self.A = -(4/3) * pow(self.Z,2) 
+        self.B = self.L_init * self.Z + self.W_init * self.Z 
+        self.C = -self.L_init * self.W_init
+        self.D = (self.h_init * self.L_init * self.W_init) - (pow(self.h_init,2) * self.L_init * self.Z)  - (pow(self.h_init,2) * self.W_init * self.Z) + ((4/3)*(pow(self.Z,2)* pow(self.h_init,3)))
+        self.vol_in_cubicfeet = (4/3)*(pow(self.Z,2)* pow(self.h,3)) - (self.Z * pow(self.h,2) *(self.L+self.W)) + (self.h * self.L * self.W)
+        return self.vol_in_cubicfeet * 7.48052
 
-        return self.Lagoon_V_Coeffs[0] + self.Lagoon_V_Coeffs[1] * depth + self.Lagoon_V_Coeffs[2] *depth*depth + self.Lagoon_V_Coeffs[3] * depth*depth*depth + self.Lagoon_V_Coeffs[4] * depth*depth*depth*depth
+    # def calculateLagoonVolume(self, depth):
+    #     """
+    #     Calculate volume for lagoon
+    #     :param self:
+    #     :param depth:
+    #     :return: Volume for lagoon from depth
+    #     """
 
+    #     return self.Lagoon_V_Coeffs[0] + self.Lagoon_V_Coeffs[1] * depth + self.Lagoon_V_Coeffs[2] *depth*depth + self.Lagoon_V_Coeffs[3] * depth*depth*depth + self.Lagoon_V_Coeffs[4] * depth*depth*depth*depth
 
+    def calculateDepthFromVol(self, lagoon_volume, day):
+        """
+        Calculate depth from given volume
+        :param self:
+        :param volume:
+        :return list of depths in inches for each volumes
+        """
+        lagoon_volume_in_cubic_feet = (lagoon_volume/7.48052)
+        D_New = self.D - lagoon_volume_in_cubic_feet
+
+        coeffs = [self.A, self.B, self.C, D_New]
+        roots = np.roots(coeffs)
+        d_value = 0
+        for root in roots:
+            if np.isreal(root) and np.real(root)>d_value and np.real(root)<self.h_init:
+                d_value = np.real(root)
+        depth_in_feet = d_value
+        return depth_in_feet * 12
+
+        
     def getDepthFromVol(self, volume):
         """
         Calculate depth from given volume
@@ -435,7 +541,7 @@ class RISF:
 
         return  irrigate_vol
 
-    def calculateNewDepths(self, evaporation_rate, rainfall_rate,dates):
+    def calculateNewDepths(self, evaporation_rate, rainfall_rate,dates,isDeveloper=False, simNumber=0, numOfSimulations=0):
         """
         Calculates new depth from evaportion_rate,rainfall_rate and animal_waste_vol
         :param evaporation_rate:
@@ -465,12 +571,14 @@ class RISF:
             volume_allocation_per_field[i]=[]
             nitrogen_concentration_per_field[i]=[]
 
+        self.calculateDimensions(depth)
         for i in range(len(evaporation_rate)):
-
-            lagoon_surface_area = self.calculateLagoonSurfaceArea(depth)
+            lagoon_surface_area = self.calculateLagoonSurfaceArea()
+            #lagoon_surface_area = self.calculateLagoonSurfaceArea(depth)
             if day==0:
                 # Calculating initial lagoon volume based on init depth
-                lagoon_volume = self.calculateLagoonVolume(depth)
+                lagoon_volume = self.calculateLagoonVolume()
+                #lagoon_volume = self.calculateLagoonVolume(depth)
             day+=1
 
             # Evaporation Volume in gallons = Evap rate * lagoon surface area
@@ -525,8 +633,7 @@ class RISF:
 
             prev_day_depth = depth
             # Get new depth from the updated lagoon volume
-            depth = self.getDepthFromVol(lagoon_volume)
-
+            depth = self.calculateDepthFromVol(lagoon_volume, day) #self.getDepthFromVol(lagoon_volume)
 
             if depth <= 1:
                 overflow_flag.append("Lagoon overflow event")
@@ -545,6 +652,8 @@ class RISF:
             else:
                 exceedance_lagoon_volume.append(0)
 
+            if depth!=prev_day_depth:
+                self.calculateDimensions(depth)
             new_depth.append(depth)
             invent_lagoon_vol.append(lagoon_volume)
 
@@ -559,9 +668,10 @@ class RISF:
         if not os.path.exists(directory_output):
             os.makedirs(directory_output)
         else:
-            files = glob.glob(directory_output+"*")
-            for f in files:
-                os.remove(f)
+            if isDeveloper == False:
+                files = glob.glob(directory_output+"Report-*")
+                for f in files:
+                    os.remove(f)
 
         cols=[dates,invent_irri_vol,new_depth,invent_lagoon_vol,overflow_flag,delta_change,daily_rainfall,daily_evap,exceedance_lagoon_volume]
         for i in range(1, self.number_of_fields+1):
@@ -574,14 +684,13 @@ class RISF:
 
         df1= pd.DataFrame(cols).transpose()
 
-        col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
+        report_col_labels=["Dates","Vol used for irrigation","New depths","Lagoon Volumes","overFlow flag","Delta change","rainfall","evaporation","exceedance Lagoon Volume"]
         for i in range(1, self.number_of_fields+1):
-            col_labels.append("Vol Field "+str(i))
+            report_col_labels.append("Vol Field "+str(i))
         for i in range(1, self.number_of_fields+1):
-            col_labels.append("Nitrogen Mass Field "+str(i))
-
-        df1.columns=col_labels
-       # df1.to_excel(directory_output+"Report-"+self.file_name, sheet_name='Report')
+            report_col_labels.append("Nitrogen Mass Field "+str(i))
+        
+        df1.columns=report_col_labels
         df2 = df1.copy()
 
         df2['YearMonth'] = pd.to_datetime(df1['Dates']).apply(lambda x: '{year}-{month}'.format(year=x.year, month=x.month))
@@ -594,28 +703,68 @@ class RISF:
             col_labels.append("Nitrogen Mass Field "+str(i))
 
         df2 = df2[col_labels]
-#        print(df2)
-        #df2.to_excel(directory_output+"Aggregated-Report-"+self.file_name, sheet_name='aggregation')
-        with pd.ExcelWriter(directory_output+"Report-"+self.file_name) as writer:
-   
-    # use to_excel function and specify the sheet_name and index
-    # to store the dataframe in specified sheet
-            df1.to_excel(writer, sheet_name="Report")
-            df2.to_excel(writer, sheet_name="Aggregation")
 
-        self.file_name = directory_output+"Report-"+self.file_name
+        if isDeveloper:
+            simKey = [simNumber] * len(cols[0])
+            cols.append(simKey)
+            if simNumber == 1:
+                self.out = cols
+            else:
+                # for i in range(len(self.out)):
+                #     self.out[i] += cols[i] 
+                self.out = [sublist1 + sublist2 for sublist1, sublist2 in zip(self.out, cols)]
+
+
+            # for col in cols:
+            #     col.append(simNumber)
+            # self.out.append(cols)
+            
+            inp_vals=[self.input_data["numofanimals"],self.input_data["percentwaterloss"],self.input_data["initdepth"],self.input_data["avgnitroconcentration"]]
+            for val in self.input_data["fieldarea"]:
+                inp_vals.append(val)
+            for val in self.input_data["cropyield"]:
+                inp_vals.append(val)
+            inp_vals.append(simNumber)
+            
+            self.input.append(inp_vals)
+            
+            if simNumber == numOfSimulations:
+                file_path = directory_output + "Dev-Report.xlsx"
+                inp_col_labels = ["numofanimals","percentwaterloss","initdepth","avgnitroconcentration"]
+                for i in range(1, self.number_of_fields+1):
+                    inp_col_labels.append("fieldarea "+str(i))
+                for i in range(1, self.number_of_fields+1):
+                    inp_col_labels.append("cropyield "+str(i))
+                inp_col_labels.append('SimulationKey')
+
+                df_input = pd.DataFrame(self.input)
+                df_input.columns = inp_col_labels 
+
+                report_col_labels.append('SimulationKey')
+                df_output = pd.DataFrame(self.out).transpose()
+                df_output.columns = report_col_labels
+
+                with pd.ExcelWriter(file_path) as writer:
+                    df_output.to_excel(writer, sheet_name="Report", index=False)
+                    df_input.to_excel(writer, sheet_name="Input", index=False)
+            self.file_name = directory_output+"Dev-Report.xlsx"
+        else:
+            with pd.ExcelWriter(directory_output+"Report-"+self.file_name) as writer:
+                  df1.to_excel(writer, sheet_name="Report")
+                  df2.to_excel(writer, sheet_name="Aggregation")
+            self.file_name = directory_output+"Report-"+self.file_name
         return new_depth, overflow_flag
 
 
 
     # Main function
-    def readInputFile(self,climateFile):
+    def readInputFile(self,climateFile, isDeveloper=False, simNumber=0, numOfSimulations=0):
             """
             This method gets the input file, invokes required methods to get the final depth for each day and decides about the appropriate flags
             :param self:
             :return:
             """
-            print("Starting ...")
+            print("Starting ... Sim No:",simNumber)
             workbook = pd.read_excel(climateFile, skiprows=12)
         # try:
             workbook.fillna(0)
@@ -672,7 +821,7 @@ class RISF:
             evaporation_rate = self.calculateEvaporationRate(delta_air_tem_c, e_as, e_a, air_density, net_radiation,
                                                         avg_wind_speed_at_two_meters)
 
-            new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate,dates)
+            new_depth,overflow_flag= self.calculateNewDepths(evaporation_rate, rainfall_rate,dates, isDeveloper, simNumber, numOfSimulations)
 
     def visualize(self, fileName):
          pd.set_option("styler.format.thousands", ",")
@@ -685,8 +834,8 @@ class RISF:
          ax.bar(grouped.index, grouped["rainfall"]/10**6, label="Rainfall")
          ax.bar(grouped.index, grouped["evaporation"]/10**6, label="Evaporation")
          ax.bar(grouped.index, grouped["exceedance Lagoon Volume"]/10**6, label="Exceedance Lagoon Volume")
-         ax.legend(loc='best')
-         ax.set_ylim([0, 12])
+         ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=3)
+         #ax.set_ylim([0, 12])
          plt.xlabel('Year')
          plt.ylabel('Volume (million gallons)')
          
@@ -700,6 +849,58 @@ class RISF:
          vol_table_data = grouped.filter(regex='Vol Field')
          nitro_table_data = grouped.filter(regex='Nitrogen Mass')
          return string, vol_table_data, nitro_table_data
+
+    def saveInputData(self,inputData):
+        dict = inputData.to_dict()
+        df = pd.DataFrame(dict, index=[0])
+        file_name =  str(datetime.now())+".xlsx"
+        directory_output = os.getcwd()+'/Input_Files/'
+
+        if not os.path.exists(directory_output):
+            os.makedirs(directory_output)
+        else:
+            files = glob.glob(directory_output+"Input-"+"*")
+            for f in files:
+                os.remove(f)                 
+
+        with pd.ExcelWriter(directory_output+"Input-"+file_name) as writer:
+            df.to_excel(writer, sheet_name="Input")
+
+    def fetchInputData(self, fileName):
+        df = pd.read_excel(fileName)
+        animaltype, avgnumofanimals, length, width, depth, sideslope = df.loc[0,'animaltype'], df.loc[0,"avgnumofanimals"], df.loc[0,"length"], df.loc[0,"width"], df.loc[0,"depth"], df.loc[0,"sideslope"]
+
+        # Create a list of the fields to be displayed in the table
+        fields_to_display = ["fieldid", "fieldcroptype", "fieldcropyield", "fieldarea"]
+
+        # Create a list of lists with the values for each field in each row
+        output_dict = {"fieldid":[],"fieldcroptype": [],"fieldarea":[],"fieldcropyield":[]} 
+        cropcode_dict = {}
+        for index, row in df.iterrows():
+            for key, value in row.items():
+                if "fieldcroptype" in key:
+                    output_dict["fieldcroptype"].append(value)
+                elif "fieldid" in key:
+                    output_dict["fieldid"].append(value)
+                elif "fieldarea" in key:
+                    output_dict["fieldarea"].append(value)
+                elif "fieldcropyield" in key:
+                    output_dict["fieldcropyield"].append(value)
+                elif "cropname" in key:
+                    ind = key.index('cropname')
+                    suffix = key[8:]
+                    cc = df.loc[0,'cropcode'+suffix]
+                    cropcode_dict[cc] = value
+
+        output_dict['fieldcroptype'] = [cropcode_dict[x] for x in output_dict['fieldcroptype']]
+
+        # Create a DataFrame from the list of rows and the list of fields
+        df = pd.DataFrame(output_dict, columns=fields_to_display)
+
+        # Print the HTML representation of the DataFrame
+        return animaltype, avgnumofanimals, length, width, depth, sideslope,df
+
+
 
 
 

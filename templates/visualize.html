@@ -32,9 +32,30 @@
           background-color: #f2f2f2;
           font-weight: bold;
         }
+        inp_table.data {
+          width: 80%;
+          border-collapse: collapse;
+          border-spacing: 0;
+          font-size: 14px;
+        }
+        inp_table.data th, inp_table.data td {
+          padding: 8px;
+          text-align: center;
+          border: 1px solid #ddd;
+        }
+        inp_table.data th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
       </style>
   </head>
   <body>
+    <h3>Input Data</h3>
+    <b>Farm Type: </b> {{animaltype}}</br></br>
+    <b>Number Of Animals: </b>{{avgnumofanimals}}</br></br>
+    <b>Lagoon Dimension (L x W x H x Z): </b> {{length}} X {{width}} X {{depth}} X {{sideslope}}</br></br>
+  <b> Landbase</b>
+    <h3>{{ inp_table |safe }}</h3>
     <h3>The bar graph illustrates volumes for [a] total rainfall, [b] evaporation, and [c] lagoon volume exceedance (in Million Gallons) for for each year in simulation range: </h3>
     <img src="data:image/png;base64,{{ plot }}">
     <br>

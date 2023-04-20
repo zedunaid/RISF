@@ -18,9 +18,9 @@
     <body>
         <div class="container-md"><br/><br/>
             <h3>Farm Details</h3> <br/>
-            <form method="POST" action="/manual"  enctype = "multipart/form-data">
+            <form method="POST" action="/developer"  enctype = "multipart/form-data">
               <div class="form-group">
-                <label for="animaltype">Select the animal type:</label>
+                <label for="animaltype">Type of swine farm</label>
                 <select class="form-control" name="animaltype" style="width:180px;">
                   <option>Farrow-wean</option>
                   <option>Farrow-feeder</option>
@@ -31,13 +31,20 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="avgnumofanimals">Total number of animals:</label>
-                <input type="text" class="form-control" name="avgnumofanimals" style="width:180px;" required>
+                <label for="avgnumofanimals"> Number of heads; sensitivity (%)</label>
+                <div style="display:flex;">
+                <input type="text" class="form-control" placeholder='Num Of Animals' name="avgnumofanimals" style="width:180px;" required>
+                <input type="text" class="form-control" placeholder='%' name="percnumofanimals" style="width:180px;margin-left: 10px;" required>
+                </div>
               </div>
+
               <div class="form-group">
-                <label for="percentwaterloss"> Water loss (% manure productions):</label>
-                <input type="text" class="form-control" name="percentwaterloss" style="width:180px;" required>
-              </div>
+                <label for="percentwaterloss"> Water loss (% manure productions); sensitivity (%)</label>
+                <div style="display:flex;">
+                <input type="text" class="form-control" placeholder='% of Water Loss' name="percentwaterloss" style="width:180px;" required>
+                <input type="text" class="form-control" placeholder='%' name="percwaterloss" style="width:180px;margin-left: 10px;" required>
+                </div>  
+            </div>
               <script>
                 function showDimensions() {
         var image = document.getElementById("dim_image");
@@ -52,48 +59,57 @@
               
               <div class="form-group">
                 <div style="position:relative;">
-                  <label for="length" style="width: 180px;">Length (L in ft):</label>
+                  <label for="length" style="width: 180px;">Lagoon length in feet (L)</label>
                   <input type="text" class="form-control" name="length" style="width:180px;" required>
                   <img id="dim_image" src="{{ url_for('static', filename='dimensions.jpg') }}" alt="dimensions image" style="position:absolute; top:0; right:0; margin-top: 10px; margin-left: 0; float:right;" width="400" height="200"/>
                 </div>
-                
               </div>
              
               <div class="form-group">
-                <label for="width" style="width: 180px;">Width (W in ft):</label>
+                <label for="width" style="width: 180px;">Lagoon width in feet (W)</label>
                 <input type="text" class="form-control" name="width" style="width:180px;" required>
               </div>
+
               <div class="form-group">
-                <label for="depth" style="width: 180px;">Depth (h in ft):</label>
+                <label for="depth" style="width: 180px;">Lagoon depth in feet (h)</label>
                 <input type="text" class="form-control" name="depth" style="width:180px;" required>
               </div>
+
               <div class="form-group">
-                <label for="sideslope" style="width: 180px;">Side Slope (Z in ft):</label>
+                <label for="sideslope" style="width: 180px;">Lagoon Side Slope in feet (Z)</label>
                 <input type="text" class="form-control" name="sideslope" style="width:180px;" required>
               </div>              
               <div class="form-group">
-                <label for="initdepth">Initial lagoon freeboard (inches):</label>
-                <input type="text" class="form-control" name="initdepth" style="width:180px;" required>
+                <label for="initdepth">Initial lagoon freeboard (inches); sensitivity (%)</label>
+                <div style="display:flex;">
+                <input type="text" class="form-control" placeholder='Init FB Depth' name="initdepth" style="width:180px;" required>
+                <input type="text" class="form-control" placeholder='%' name="percinitdepth" style="width:180px;margin-left: 10px;" required>
+                 </div>
               </div>
               <div class="form-group">
-                <label for="irrigationstartdepth">Start-pump depth (top of storage volume) (inches):</label>
+                <label for="irrigationstartdepth">Start-pump depth (top of storage volume) (inches)</label>
                 <input type="text" class="form-control" name="irrigationstartdepth" style="width:180px;" required>
               </div>
               <div class="form-group">
-                <label for="irrigationstopdepth">Stop-pump depth (top of treatment volume) (inches):</label>
+                <label for="irrigationstopdepth">Stop-pump depth (top of treatment volume) (inches)</label>
                 <input type="text" class="form-control" name="irrigationstopdepth" style="width:180px;" required>
               </div>
               <div class="form-group">
-                <label for="floodingdepth">Freeboard violation alarm (inches):</label>
+                <label for="floodingdepth">Freeboard violation alarm (inches)</label>
                 <input type="text" class="form-control" name="floodingdepth" style="width:180px;" required>
               </div>
               <div class="form-group">
-                <label for="avgnitroconcentration">Annual average concentration of nitrogen in the irrigated liquid (lbs/1000 gallons) :</label>
+                <label for="avgnitroconcentration">Average plant available nitrogen (PAN) (lbs/1,000 gallon) ; Sensitivity (%)
+                </label>
+                <div style="display:flex;">
                 <input type="text" class="form-control" name="avgnitroconcentration" style="width:180px;" required>
+                <input type="text" class="form-control" placeholder='%' name="percavgnitro" style="width:180px;margin-left: 10px;" required>
+                </div>
               </div><br/>
 
               <div class="form-group">
                 <label for="dynamicInputContainer"><h3>Crop Information</h3> </label>
+  
                 <div class="row clearfix">
                   <div class="col-md-12 table-responsive">
                   <table class="table table-bordered table-hover table-sortable" id="tab_logic">
@@ -217,13 +233,18 @@
               </script>
 
               <div class="form-group">
-              <label for="fieldInformation"><h3>Field Information</h3> </label>
-              <p>Enter the number of fields:</p>
+              <label for="fieldInformation"><h3>Field Information</h3> </label> <br/>
+
+              <p>Enter the number of fields</p>
               <input type="text" id="rowCount" required>
               <button type="button" class="btn btn-primary" onclick="generateTable()">Insert field data</button>
               <br><br>
               <table id="tableInput" class="table table-bordered"></table> 
               </div>
+              <label for="percareafield">Sensitivity (%) for field area(s)</label>
+              <input type="text" class="form-control" placeholder='% of Field Area' name="percareafield" style="width:200px;margin-left: 10px;" required><br/>
+              <label for="percyield">Sensitivity (%) for crop yield(s)</label>
+              <input type="text" class="form-control" placeholder='% of Crop Yield' name="percyield" style="width:200px;margin-left: 10px;" required><br/>
 
               <script>
                 function generateTable() {
@@ -276,6 +297,8 @@
                     <label><input type="radio" name="station" value="WILD">  Williamsdale Field Lab, WILD - Wallace, NC (01-2015 to 01-2020)</label>
                   </div>
               </div>
+              <label for="noofsimulations">Enter Number Of Simulations</label>
+              <input type="text" class="form-control" name="noofsimulations" style="width:200px;margin-left: 10px;" required><br/>
               <button type="submit" class="btn btn-primary btn-lg">Submit</button>
             </form>
             </div> <br/>
