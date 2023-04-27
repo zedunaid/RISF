@@ -27,6 +27,9 @@ def getManualSimulationReport(inputdata, isDeveloper = False):
                  'WILD': os.path.join('Input_files','WILD_2015-2020.xlsx')
                 }
     station = inputdata['station']
+    if inputdata['station'] == "FILE":
+        file_path[station] = request.files['climateFile'] 
+    print(file_path[station])
     obj = RISF()
     obj.saveInputData(inputdata)
     if isDeveloper:
@@ -107,7 +110,7 @@ def developer_data():
 
 @app.route('/download', methods=['POST'])
 def download_report():
-    FileName = glob.glob(os.path.join('Output_Files','*.xlsx'))[0]
+    FileName = glob.glob(os.path.join('Output_Files','Report-*.xlsx'))[0]
     out_file_name = FileName.split('/')[1]
     return send_file(FileName, as_attachment=True, download_name=out_file_name)
 

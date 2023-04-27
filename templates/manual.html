@@ -275,6 +275,22 @@
                   <div class="radio">
                     <label><input type="radio" name="station" value="WILD">  Williamsdale Field Lab, WILD - Wallace, NC (01-2015 to 01-2020)</label>
                   </div>
+                  <div class="radio">
+                    <label>
+                      <input type="radio" name="station" value="FILE">
+                      Upload a Climate File
+                    </label>
+                  </div>
+              </div>
+
+              <div class="form-group" x-data="{ fileName: '' }">
+                <div class="input-group shadow" style="width:500px;">
+                  <span class="input-group-text px-3 text-muted"><i class="fas fa-image fa-lg"></i></span>
+                  <input type="file" name="climateFile" class="d-none">
+                  <input type="text" class="form-control form-control-lg" value="Upload Climate File" readonly>
+                  <button class="browse btn btn-primary px-4" type="button" onclick="document.querySelector('input[name=climateFile]').click()"><i class="fas fa-image"></i> Browse</button>
+                </div>
+                <br>
               </div>
               <button type="submit" class="btn btn-primary btn-lg">Submit</button>
             </form>

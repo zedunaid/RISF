@@ -301,12 +301,14 @@ class RISF:
             window_end_date = self.field_parameter[window_start_date][1]
             crop_name = self.field_parameter[window_start_date][2]
             n_removal_per_yield = self.field_parameter[window_start_date][3]
-            self.field_map[field_id] = i+1
+            if field_id not in self.field_map:
+                self.field_map[field_id] = i+1
            #Taking cumulative of nitrogen required incase there are more than one occurence of same field
             if window_start_date not in self.field_input:
                 self.field_input[window_start_date] = [[crop_code, window_end_date, field_area, crop_name, crop_yield_per_acre, n_removal_per_yield, field_id]]
             else:
                 self.field_input[window_start_date].append([crop_code, window_end_date, field_area, crop_name, crop_yield_per_acre, n_removal_per_yield, field_id])
+        self.number_of_fields = len(set(output_dict["fieldid"]))
         #print(self.field_input)
 
     def ea(self, min_air_tem_c, max_air_tem_c, max_rel_humidity_per, min_rel_humidity_per):
